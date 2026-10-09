@@ -38,19 +38,19 @@ public class AgentsModel : PageModel
         var agent = await _db.Agents.FindAsync(id);
         if (agent is null)
         {
-            Error = "Агентът не е намерен.";
+            Error = "Agent not found.";
             return RedirectToPage();
         }
 
         if (!string.Equals((confirmName ?? "").Trim(), agent.Hostname, StringComparison.OrdinalIgnoreCase))
         {
-            Error = $"Името не съвпада – агент {agent.Hostname} НЕ е изтрит.";
+            Error = $"The name does not match - agent {agent.Hostname} was NOT deleted.";
             return RedirectToPage();
         }
 
         _db.Agents.Remove(agent); // events are removed by cascade
         await _db.SaveChangesAsync();
-        Message = $"Агент {agent.Hostname} и всичките му събития са изтрити. Самият агент на сървъра не е деинсталиран.";
+        Message = $"Agent {agent.Hostname} and all of its events were deleted. The agent itself is not uninstalled on that server.";
         return RedirectToPage();
     }
 }

@@ -1,22 +1,22 @@
 ﻿#Requires -RunAsAdministrator
 <#
-    Включва в Windows записването на събитията, от които агентът чете одита:
-      - "Process Creation" (събитие 4688) + команден ред в него   -> за одита на процеси
-      - "File System" (събитие 4663) + одит запис на избраните папки -> за одита на файлове ("кой и кога")
+    Turns on the Windows auditing that the agent reads its audit events from:
+      - "Process Creation" (event 4688) + command line in it  -> process audit
+      - "File System" (event 4663) + audit entry on the chosen folders -> file audit ("who and when")
 
-    Папките се четат от appsettings.json (Audit:FileFolders), в същата папка като този скрипт.
+    Folders are read from appsettings.json (Audit:FileFolders), located next to this script.
 
-    Какво променя (показва го и пита за потвърждение):
-      1. Политика за одит:  auditpol  (Process Creation, File System - само успешни)
-      2. Регистър:          ProcessCreationIncludeCmdLine_Enabled = 1
-      3. Одит запис (SACL) за Everyone върху всяка избрана папка: само запис на промяна/изтриване.
-         НЕ променя правата за достъп (DACL) на папките.
-    Ако машината е в домейн и политиката за одит се задава от Group Policy, GPO може да презапише точка 1.
+    What it changes (it shows the list and asks for confirmation):
+      1. Audit policy:  auditpol  (Process Creation, File System - success only)
+      2. Registry:      ProcessCreationIncludeCmdLine_Enabled = 1
+      3. An audit entry (SACL) for Everyone on each chosen folder: only records changes/deletes.
+         It does NOT change the access permissions (DACL) of the folders.
+    If the machine is in a domain and audit policy is set by Group Policy, a GPO may overwrite item 1.
 
-    Използване:
-        .\setup-audit.ps1            # настройва
-        .\setup-audit.ps1 -Remove    # маха одит записите от папките (политиката за одит се оставя - виж края)
-        .\setup-audit.ps1 -Yes       # без въпрос за потвърждение
+    Usage:
+        .\setup-audit.ps1            # configure
+        .\setup-audit.ps1 -Remove    # remove the audit entries from the folders (audit policy is left as is - see the end)
+        .\setup-audit.ps1 -Yes       # no confirmation prompt
 #>
 
 param(
@@ -27,7 +27,7 @@ param(
 $ErrorActionPreference = "Stop"
 
 $cfgPath = Join-Path $PSScriptRoot "appsettings.json"
-if (-not (Test-Path $cfgPath)) { throw "Не намирам $cfgPath" }
+if (-not (Test-Path $cfgPath)) { throw "Cannot find $cfgPath" }
 $cfg = Get-Content $cfgPath -Raw | ConvertFrom-Json
 $folders = @($cfg.Audit.FileFolders | Where-Object { $_ })
 $procAudit = [bool]$cfg.Audit.MonitorProcesses
@@ -46,53 +46,53 @@ function New-AuditRule {
 }
 
 if ($Remove) {
-    Write-Host "Ще бъдат махнати одит записите (за Everyone) от папките:" -ForegroundColor Yellow
+    Write-Host "The audit entries (for Everyone) will be removed from these folders:" -ForegroundColor Yellow
     $folders | ForEach-Object { Write-Host "  $_" }
-    if (-not $Yes -and (Read-Host "Продължаваш? (y/n)") -ne "y") { return }
+    if (-not $Yes -and (Read-Host "Continue? (y/n)") -ne "y") { return }
     foreach ($f in $folders) {
-        if (-not (Test-Path $f)) { Write-Warning "Липсва: $f"; continue }
+        if (-not (Test-Path $f)) { Write-Warning "Missing: $f"; continue }
         $acl = Get-Acl -Path $f -Audit
         $acl.RemoveAuditRuleAll((New-AuditRule))
         Set-Acl -Path $f -AclObject $acl
-        Write-Host "Махнат одит запис: $f"
+        Write-Host "Audit entry removed: $f"
     }
-    Write-Host "`nПолитиката за одит (auditpol) НЕ е променена, защото други инструменти може да я ползват."
-    Write-Host "За да я изключиш ръчно: auditpol /set /subcategory:`"$guidFile`" /success:disable"
+    Write-Host "`nThe audit policy (auditpol) was NOT changed, because other tools may rely on it."
+    Write-Host "To turn it off manually: auditpol /set /subcategory:`"$guidFile`" /success:disable"
     return
 }
 
-Write-Host "Ще бъдат направени следните промени на тази машина:" -ForegroundColor Yellow
+Write-Host "The following changes will be made on this machine:" -ForegroundColor Yellow
 if ($procAudit) {
-    Write-Host "  1. auditpol: включва одит 'Process Creation' (успешни) и записване на командния ред в събитие 4688"
+    Write-Host "  1. auditpol: enable 'Process Creation' auditing (success) and put the command line into event 4688"
 }
 if ($folders.Count -gt 0) {
-    Write-Host "  2. auditpol: включва одит 'File System' (успешни)"
-    Write-Host "  3. Одит запис (само запис на събития, без промяна на правата) върху папките:"
+    Write-Host "  2. auditpol: enable 'File System' auditing (success)"
+    Write-Host "  3. Audit entry (records events only, does not change permissions) on the folders:"
     $folders | ForEach-Object { Write-Host "       $_" }
 }
 if (-not $procAudit -and $folders.Count -eq 0) {
-    Write-Host "Нищо за настройване: Audit:MonitorProcesses е false и Audit:FileFolders е празен в appsettings.json." -ForegroundColor Yellow
+    Write-Host "Nothing to configure: Audit:MonitorProcesses is false and Audit:FileFolders is empty in appsettings.json." -ForegroundColor Yellow
     return
 }
-if (-not $Yes -and (Read-Host "Продължаваш? (y/n)") -ne "y") { Write-Host "Отказано."; return }
+if (-not $Yes -and (Read-Host "Continue? (y/n)") -ne "y") { Write-Host "Cancelled."; return }
 
 if ($procAudit) {
     auditpol /set /subcategory:"$guidProcess" /success:enable | Out-Null
     $key = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System\Audit"
     if (-not (Test-Path $key)) { New-Item -Path $key -Force | Out-Null }
     New-ItemProperty -Path $key -Name "ProcessCreationIncludeCmdLine_Enabled" -Value 1 -PropertyType DWord -Force | Out-Null
-    Write-Host "OK: одит на процесите + команден ред" -ForegroundColor Green
+    Write-Host "OK: process auditing + command line" -ForegroundColor Green
 }
 
 if ($folders.Count -gt 0) {
     auditpol /set /subcategory:"$guidFile" /success:enable | Out-Null
     foreach ($f in $folders) {
-        if (-not (Test-Path $f)) { Write-Warning "Липсва, прескачам: $f"; continue }
+        if (-not (Test-Path $f)) { Write-Warning "Missing, skipping: $f"; continue }
         $acl = Get-Acl -Path $f -Audit
         $acl.AddAuditRule((New-AuditRule))
         Set-Acl -Path $f -AclObject $acl
-        Write-Host "OK: одит запис на $f" -ForegroundColor Green
+        Write-Host "OK: audit entry on $f" -ForegroundColor Green
     }
 }
 
-Write-Host "`nГотово. Рестартирай агента, за да прочете настройките:  Restart-Service RdpMonitorAgent"
+Write-Host "`nDone. Restart the agent so it reads the settings:  Restart-Service RdpMonitorAgent"

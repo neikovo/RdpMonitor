@@ -1,35 +1,35 @@
 @page
 @model RdpMonitor.Server.Pages.LoginModel
 @{
-    ViewData["Title"] = "Вход";
+    ViewData["Title"] = "Sign in";
     Layout = null;
 }
 <!DOCTYPE html>
-<html lang="bg">
+<html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>RDP Monitor — Вход</title>
+    <title>RDP Monitor - Sign in</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
 </head>
 <body class="bg-light">
     <div class="d-flex align-items-center justify-content-center" style="min-height:100vh;">
         <div class="card shadow-sm" style="width: 360px;">
             <div class="card-body">
-                <h4 class="card-title mb-3">RDP Monitor — Вход</h4>
+                <h4 class="card-title mb-3">RDP Monitor - Sign in</h4>
                 @if (!Model.ModelState.IsValid)
                 {
-                    <div class="alert alert-danger py-2">Грешно потребителско име или парола.</div>
+                    <div class="alert alert-danger py-2">Wrong username or password.</div>
                 }
                 <form method="post">
                     <div class="mb-3">
-                        <label class="form-label">Потребител</label>
+                        <label class="form-label">Username</label>
                         <input asp-for="Username" class="form-control" autofocus />
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Парола</label>
+                        <label class="form-label">Password</label>
                         <input asp-for="Password" type="password" class="form-control" />
                     </div>
-                    <button type="submit" class="btn btn-primary w-100">Вход</button>
+                    <button type="submit" class="btn btn-primary w-100">Sign in</button>
                 </form>
             </div>
         </div>

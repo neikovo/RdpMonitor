@@ -1,35 +1,42 @@
 # RDP Monitor
 
-Агент/сървър система за наблюдение на RDP сесии и подозрителни процеси на Windows Server 2022 и по-нови.
+An agent/server system that monitors RDP sessions and suspicious processes on Windows Server 2022 and newer.
 
-- **Агент** – Windows услуга на всеки наблюдаван сървър: засича RDP събития и подозрителни процеси и ги праща към централния сървър. (Файловият одит е подготвен, но чака политика за одит.)
-- **Сървър** – централен: приема данни, пази ги (SQLite), праща имейл според приоритет и показва уеб табло.
+- **Agent** - a Windows service on every monitored server: detects RDP events and suspicious process starts and reports them to the central server. (A file audit is prepared but needs the Windows file-audit policy to be enabled.)
+- **Server** - central: receives the data, stores it (SQLite), sends e-mail alerts by priority and serves a web dashboard.
 
-**За инсталация и работа виж [ИНСТАЛАЦИЯ.md](ИНСТАЛАЦИЯ.md).**
+**Installation and operation: see [INSTALL.md](INSTALL.md).**
 
-## Пакети
+## Features
 
-Създават се с `.\publish.ps1` (изисква .NET 8 SDK) в папка `dist\`:
+- RDP logon, logoff, disconnect, reconnect and **failed logons** (with and without NLA), with source IP
+- **Suspicious process** audit: configurable list of programs and command-line regex patterns; each record shows the program, command line, why it was flagged, the parent process, PID and privileges
+- Priority per event type, global e-mail threshold, per-agent mute, multiple recipients
+- Web dashboard: agents online/offline, events with filters, settings; safe deletion (events need the admin password, an agent needs its name typed)
+- The agent keeps events in a local queue until the server accepts them, so nothing is lost during an outage
+- Agent connects outbound only (HTTPS, API key per agent); no inbound ports on monitored servers
+
+## Packages
+
+Build with `.\publish.ps1` (requires the .NET 8 SDK). It creates in `dist\`:
 
 - `RdpMonitor.Server.zip`
 - `RdpMonitor.Agent.zip`
-- `ИНСТАЛАЦИЯ.md`
+- `INSTALL.md`
 
-## Устройство на кода
+## Code layout
 
 ```
-src/RdpMonitor.Shared   общи типове (събития, приоритети, DTO)
-src/RdpMonitor.Agent    Windows услуга: RdpSessionMonitor, AuditMonitor/AuditParser, ServerApiClient, LocalEventQueue
-src/RdpMonitor.Server   ASP.NET Core: API за агентите, Razor Pages табло, AlertService, EmailService, SQLite
-deploy/update.ps1       скрипт за обновяване (копира се във всеки пакет)
+src/RdpMonitor.Shared   shared types (events, priorities, DTOs)
+src/RdpMonitor.Agent    Windows service: RdpSessionMonitor, AuditMonitor/AuditParser, ServerApiClient, LocalEventQueue
+src/RdpMonitor.Server   ASP.NET Core: agent API, Razor Pages dashboard, AlertService, EmailService, SQLite
+deploy/update.ps1       update script (copied into every package)
 ```
 
-Агентът пази събитията локално (`C:\ProgramData\RdpMonitor\events.queue.jsonl`), докато сървърът ги приеме, така че при прекъсване нищо не се губи.
+## Responsible use
 
-## Отговорна употреба
+This tool watches logons, processes (and optionally files) on servers. Use it only on systems you manage or have explicit permission to monitor, and in line with your internal policies and data-protection law. It is provided "as is", without warranty (see [LICENSE](LICENSE)). Before real use, change the default passwords and token (`CHANGE-ME...`) - see [INSTALL.md](INSTALL.md).
 
-Инструментът следи входове, процеси (и по избор файлове) на сървъри. Използвай го само на системи, които управляваш или за които имаш изрично разрешение, и в съответствие с вътрешните правила и закона за защита на личните данни. Подаван е „както е“, без гаранции (виж [LICENSE](LICENSE)). Преди реална употреба смени паролите и токена по подразбиране (`CHANGE-ME…`) – виж [ИНСТАЛАЦИЯ.md](ИНСТАЛАЦИЯ.md).
+## License
 
----
-
-**English (short):** RDP Monitor is a Windows Server agent + central ASP.NET Core server. The agent (Windows service) reports RDP logons/logoffs/failed logons and suspicious process starts (optional file audit) to the server, which stores them in SQLite, sends e-mail alerts by priority and shows a web dashboard. Build with the .NET 8 SDK (`.\publish.ps1` produces self-contained `dist\*.zip` packages). Documentation is in Bulgarian. Licensed under MIT.
+MIT - see [LICENSE](LICENSE).

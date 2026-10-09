@@ -1,10 +1,10 @@
 @page
 @model RdpMonitor.Server.Pages.IndexModel
 @{
-    ViewData["Title"] = "Табло";
+    ViewData["Title"] = "Dashboard";
 }
 
-<h2 class="mb-3">Инсталирани агенти</h2>
+<h2 class="mb-3">Installed agents</h2>
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
@@ -17,21 +17,21 @@
 
 @if (Model.Agents.Count == 0)
 {
-    <div class="alert alert-info">Все още няма регистрирани агенти. Инсталирай агент на сървър и той ще се появи тук автоматично.</div>
+    <div class="alert alert-info">No agents registered yet. Install an agent on a server and it will appear here automatically.</div>
 }
 else
 {
     <table class="table table-striped align-middle">
         <thead>
             <tr>
-                <th>Статус</th>
-                <th>Хост</th>
-                <th>IP адрес</th>
-                <th>ОС</th>
-                <th>Последно видян</th>
-                <th>Събития (24ч)</th>
-                <th>Високоприоритетни (24ч)</th>
-                <th>Заглушен</th>
+                <th>Status</th>
+                <th>Host</th>
+                <th>IP address</th>
+                <th>OS</th>
+                <th>Last seen</th>
+                <th>Events (24h)</th>
+                <th>High priority (24h)</th>
+                <th>Muted</th>
                 <th></th>
             </tr>
         </thead>
@@ -42,11 +42,11 @@ else
                     <td>
                         @if (a.IsOnline)
                         {
-                            <span class="badge bg-success">Онлайн</span>
+                            <span class="badge bg-success">Online</span>
                         }
                         else
                         {
-                            <span class="badge bg-secondary">Офлайн</span>
+                            <span class="badge bg-secondary">Offline</span>
                         }
                     </td>
                     <td>@a.Hostname</td>
@@ -64,15 +64,15 @@ else
                             <span>0</span>
                         }
                     </td>
-                    <td>@(a.IsMuted ? "Да" : "Не")</td>
+                    <td>@(a.IsMuted ? "Yes" : "No")</td>
                     <td class="text-end">
-                        <a class="btn btn-sm btn-outline-primary" href="/Events?agentId=@a.Id">Събития</a>
+                        <a class="btn btn-sm btn-outline-primary" href="/Events?agentId=@a.Id">Events</a>
                         <form method="post" asp-page-handler="ToggleMute" asp-route-id="@a.Id" class="d-inline">
-                            <button type="submit" class="btn btn-sm btn-outline-warning">@(a.IsMuted ? "Размути" : "Заглуши")</button>
+                            <button type="submit" class="btn btn-sm btn-outline-warning">@(a.IsMuted ? "Unmute" : "Mute")</button>
                         </form>
                         <button type="button" class="btn btn-sm btn-outline-danger"
                                 data-bs-toggle="modal" data-bs-target="#clearEventsModal"
-                                data-agent-id="@a.Id" data-agent-name="@a.Hostname">Изтрий събития</button>
+                                data-agent-id="@a.Id" data-agent-name="@a.Hostname">Delete events</button>
                     </td>
                 </tr>
             }
@@ -84,18 +84,18 @@ else
     <div class="modal-dialog">
         <form method="post" asp-page-handler="ClearEvents" class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Изтриване на събития</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+                <h5 class="modal-title">Delete events</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>Ще бъдат изтрити <strong>всички записани събития</strong> на агент <strong id="clearEventsName"></strong>. Агентът остава регистриран и продължава да работи. Действието е необратимо.</p>
+                <p><strong>All stored events</strong> of agent <strong id="clearEventsName"></strong> will be deleted. The agent stays registered and keeps working. This cannot be undone.</p>
                 <input type="hidden" name="id" id="clearEventsId" />
-                <label class="form-label">Въведи паролата си за достъп до таблото</label>
+                <label class="form-label">Enter your dashboard password</label>
                 <input type="password" name="password" class="form-control" autocomplete="current-password" required />
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
-                <button type="submit" class="btn btn-danger">Изтрий събитията</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-danger">Delete the events</button>
             </div>
         </form>
     </div>

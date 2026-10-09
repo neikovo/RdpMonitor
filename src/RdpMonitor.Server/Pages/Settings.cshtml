@@ -2,19 +2,19 @@
 @model RdpMonitor.Server.Pages.SettingsModel
 @using RdpMonitor.Shared
 @{
-    ViewData["Title"] = "Настройки";
+    ViewData["Title"] = "Settings";
 }
 
-<h2 class="mb-3">Настройки</h2>
+<h2 class="mb-3">Settings</h2>
 
-<h4>Приоритет на аларми по тип събитие</h4>
-<p class="text-muted">Тук определяш какъв приоритет получава всеки тип събитие и дали да изпраща имейл. Събитие изпраща имейл само ако е включено тук <em>и</em> приоритетът му е равен или над глобалния праг (виж appsettings.json → Alerts:MinSeverityToEmail).</p>
+<h4>Alert priority by event type</h4>
+<p class="text-muted">Here you set the priority of each event type and whether it sends an e-mail. An event sends an e-mail only if it is enabled here <em>and</em> its priority is equal to or above the global threshold (see appsettings.json → Alerts:MinSeverityToEmail).</p>
 <table class="table table-sm align-middle">
     <thead>
         <tr>
-            <th>Тип събитие</th>
-            <th>Приоритет</th>
-            <th>Изпраща имейл</th>
+            <th>Event type</th>
+            <th>Priority</th>
+            <th>Sends e-mail</th>
             <th></th>
         </tr>
     </thead>
@@ -39,7 +39,7 @@
                         <input type="checkbox" class="form-check-input" name="emailEnabled" value="true" checked="@s.EmailEnabled" />
                     </td>
                     <td>
-                        <button type="submit" class="btn btn-sm btn-outline-primary">Запази</button>
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Save</button>
                     </td>
                 </form>
             </tr>
@@ -47,13 +47,13 @@
     </tbody>
 </table>
 
-<h4 class="mt-4">Получатели на имейл аларми</h4>
+<h4 class="mt-4">E-mail alert recipients</h4>
 <table class="table table-sm align-middle">
     <thead>
         <tr>
-            <th>Имейл</th>
-            <th>Име</th>
-            <th>Активен</th>
+            <th>E-mail</th>
+            <th>Name</th>
+            <th>Active</th>
             <th></th>
         </tr>
     </thead>
@@ -63,13 +63,13 @@
             <tr>
                 <td>@r.Email</td>
                 <td>@r.DisplayName</td>
-                <td>@(r.Enabled ? "Да" : "Не")</td>
+                <td>@(r.Enabled ? "Yes" : "No")</td>
                 <td>
                     <form method="post" asp-page-handler="ToggleRecipient" asp-route-id="@r.Id" class="d-inline">
-                        <button type="submit" class="btn btn-sm btn-outline-warning">@(r.Enabled ? "Деактивирай" : "Активирай")</button>
+                        <button type="submit" class="btn btn-sm btn-outline-warning">@(r.Enabled ? "Deactivate" : "Activate")</button>
                     </form>
                     <form method="post" asp-page-handler="DeleteRecipient" asp-route-id="@r.Id" class="d-inline">
-                        <button type="submit" class="btn btn-sm btn-outline-danger">Изтрий</button>
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
                     </form>
                 </td>
             </tr>
@@ -79,12 +79,12 @@
 
 <form method="post" asp-page-handler="AddRecipient" class="row g-2">
     <div class="col-auto">
-        <input asp-for="NewRecipientEmail" class="form-control" placeholder="имейл@фирма.bg" />
+        <input asp-for="NewRecipientEmail" class="form-control" placeholder="name@company.com" />
     </div>
     <div class="col-auto">
-        <input asp-for="NewRecipientName" class="form-control" placeholder="Име (по избор)" />
+        <input asp-for="NewRecipientName" class="form-control" placeholder="Name (optional)" />
     </div>
     <div class="col-auto">
-        <button type="submit" class="btn btn-primary">Добави получател</button>
+        <button type="submit" class="btn btn-primary">Add recipient</button>
     </div>
 </form>

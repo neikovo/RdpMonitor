@@ -2,18 +2,18 @@
 @model RdpMonitor.Server.Pages.EventsModel
 @using RdpMonitor.Shared
 @{
-    ViewData["Title"] = "Събития";
+    ViewData["Title"] = "Events";
 }
 
-<h2 class="mb-3">Събития</h2>
+<h2 class="mb-3">Events</h2>
 
 <form method="get" class="row g-2 mb-3">
     <div class="col-auto">
         <select name="minSeverity" class="form-select" onchange="this.form.submit()">
-            <option value="">Всички приоритети</option>
+            <option value="">All priorities</option>
             @foreach (var sev in Enum.GetValues<AlertSeverity>())
             {
-                <option value="@((int)sev)" selected="@(Model.MinSeverity == sev)">от @sev нагоре</option>
+                <option value="@((int)sev)" selected="@(Model.MinSeverity == sev)">@sev and above</option>
             }
         </select>
     </div>
@@ -21,7 +21,7 @@
     {
         <input type="hidden" name="agentId" value="@Model.AgentId" />
         <div class="col-auto align-self-center">
-            <a href="/Events">(изчисти филтъра по агент)</a>
+            <a href="/Events">(clear the agent filter)</a>
         </div>
     }
 </form>
@@ -29,14 +29,14 @@
 <table class="table table-sm table-striped">
     <thead>
         <tr>
-            <th>Час</th>
-            <th>Агент</th>
-            <th>Тип</th>
-            <th>Приоритет</th>
-            <th>Потребител</th>
-            <th>Източник IP</th>
-            <th>Детайли</th>
-            <th>Имейл изпратен</th>
+            <th>Time</th>
+            <th>Agent</th>
+            <th>Type</th>
+            <th>Priority</th>
+            <th>User</th>
+            <th>Source IP</th>
+            <th>Details</th>
+            <th>E-mail sent</th>
         </tr>
     </thead>
     <tbody>
@@ -62,7 +62,7 @@
                 <td>@e.Username</td>
                 <td>@e.SourceIp</td>
                 <td class="small text-break" style="max-width: 520px; white-space: pre-line;">@e.Details</td>
-                <td>@(e.EmailSent ? "Да" : "Не")</td>
+                <td>@(e.EmailSent ? "Yes" : "No")</td>
             </tr>
         }
     </tbody>
@@ -70,5 +70,5 @@
 
 @if (Model.Events.Count == 0)
 {
-    <div class="alert alert-info">Няма събития за показване.</div>
+    <div class="alert alert-info">No events to show.</div>
 }

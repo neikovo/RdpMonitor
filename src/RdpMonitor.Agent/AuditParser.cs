@@ -45,7 +45,7 @@ public static class AuditParser
         string? reason = null;
 
         if (options.SuspiciousProcesses.Any(n => string.Equals(Path.GetFileNameWithoutExtension(n.Trim()), exe, StringComparison.OrdinalIgnoreCase)))
-            reason = $"програма от списъка: {exe}";
+            reason = $"program on the suspicious list: {exe}";
 
         if (reason is null && !string.IsNullOrEmpty(cmd))
         {
@@ -53,7 +53,7 @@ public static class AuditParser
             {
                 try
                 {
-                    if (rx.IsMatch(cmd)) { reason = $"команден ред съвпада с: {rx}"; break; }
+                    if (rx.IsMatch(cmd)) { reason = $"command line matches: {rx}"; break; }
                 }
                 catch (RegexMatchTimeoutException) { /* skip pathological input */ }
             }
@@ -68,14 +68,14 @@ public static class AuditParser
 
         var lines = new List<string>
         {
-            $"Програма: {image}",
-            $"Команден ред: {Trunc(cmd, 600)}",
-            $"Защо е отбелязана: {reason}",
-            $"Стартирана от: {parent} (PID {HexToDec(parentPid)})",
-            $"PID на процеса: {HexToDec(pid)}",
-            $"Права: {ElevationText(elevation)}",
+            $"Program: {image}",
+            $"Command line: {Trunc(cmd, 600)}",
+            $"Why flagged: {reason}",
+            $"Started by: {parent} (PID {HexToDec(parentPid)})",
+            $"Process PID: {HexToDec(pid)}",
+            $"Privileges: {ElevationText(elevation)}",
         };
-        if (!string.IsNullOrWhiteSpace(logonId)) lines.Add($"Сесия на потребителя (LogonId): {logonId}");
+        if (!string.IsNullOrWhiteSpace(logonId)) lines.Add($"User session (LogonId): {logonId}");
 
         return new RdpEventDto
         {
@@ -96,10 +96,10 @@ public static class AuditParser
 
     private static string ElevationText(string? type) => type?.Trim() switch
     {
-        "%%1937" => "повишени (стартирана като администратор)",
-        "%%1938" => "стандартни (ограничени)",
-        "%%1936" => "пълни, без UAC ограничение (напр. системен акаунт)",
-        _ => "неизвестни",
+        "%%1937" => "elevated (started as administrator)",
+        "%%1938" => "standard (limited)",
+        "%%1936" => "full, no UAC split (e.g. a system account)",
+        _ => "unknown",
     };
 
     /// <summary>
@@ -144,7 +144,7 @@ public static class AuditParser
             EventType = type,
             Username = BuildUser(d),
             Timestamp = ToUtc(time),
-            Details = $"{path}; Програма: {process}",
+            Details = $"{path}; Program: {process}",
         };
     }
 

@@ -1,10 +1,10 @@
 @page
 @model RdpMonitor.Server.Pages.AgentsModel
 @{
-    ViewData["Title"] = "Агенти";
+    ViewData["Title"] = "Agents";
 }
 
-<h2 class="mb-3">Агенти</h2>
+<h2 class="mb-3">Agents</h2>
 
 @if (!string.IsNullOrEmpty(Model.Message))
 {
@@ -15,23 +15,23 @@
     <div class="alert alert-danger py-2">@Model.Error</div>
 }
 
-<p class="text-muted">Тук се управляват самите регистрирани агенти. Изтриването махва агента от системата заедно с <strong>всичките му събития</strong>. То <strong>не деинсталира</strong> агента на наблюдавания сървър – там първо пусни <code>uninstall.ps1</code>.</p>
+<p class="text-muted">This page manages the registered agents themselves. Deleting removes the agent from the system together with <strong>all of its events</strong>. It does <strong>not uninstall</strong> the agent on the monitored server - run <code>uninstall.ps1</code> there first.</p>
 
 @if (Model.Agents.Count == 0)
 {
-    <div class="alert alert-info">Няма регистрирани агенти.</div>
+    <div class="alert alert-info">No agents registered.</div>
 }
 else
 {
     <table class="table table-striped align-middle">
         <thead>
             <tr>
-                <th>Хост</th>
-                <th>IP адрес</th>
-                <th>Версия</th>
-                <th>Регистриран</th>
-                <th>Последно видян</th>
-                <th>Събития</th>
+                <th>Host</th>
+                <th>IP address</th>
+                <th>Version</th>
+                <th>Registered</th>
+                <th>Last seen</th>
+                <th>Events</th>
                 <th></th>
             </tr>
         </thead>
@@ -48,7 +48,7 @@ else
                     <td class="text-end">
                         <button type="button" class="btn btn-sm btn-outline-danger"
                                 data-bs-toggle="modal" data-bs-target="#deleteAgentModal"
-                                data-agent-id="@a.Id" data-agent-name="@a.Hostname">Изтрий агент</button>
+                                data-agent-id="@a.Id" data-agent-name="@a.Hostname">Delete agent</button>
                     </td>
                 </tr>
             }
@@ -60,18 +60,18 @@ else
     <div class="modal-dialog">
         <form method="post" asp-page-handler="Delete" class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Изтриване на агент</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+                <h5 class="modal-title">Delete agent</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>Ще бъдат изтрити агентът <strong id="deleteAgentName"></strong> и <strong>всичките му събития</strong>. Действието е необратимо.</p>
+                <p>Agent <strong id="deleteAgentName"></strong> and <strong>all of its events</strong> will be deleted. This cannot be undone.</p>
                 <input type="hidden" name="id" id="deleteAgentId" />
-                <label class="form-label">За потвърждение въведи точното име на сървъра</label>
+                <label class="form-label">To confirm, type the exact server name</label>
                 <input type="text" name="confirmName" id="deleteAgentConfirm" class="form-control" autocomplete="off" required />
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
-                <button type="submit" id="deleteAgentBtn" class="btn btn-danger" disabled>Изтрий агента</button>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" id="deleteAgentBtn" class="btn btn-danger" disabled>Delete the agent</button>
             </div>
         </form>
     </div>

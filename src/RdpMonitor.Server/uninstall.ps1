@@ -1,7 +1,7 @@
 ﻿#Requires -RunAsAdministrator
 <#
-    Премахва RDP Monitor Server (спира и изтрива Windows Service + firewall правилото).
-    Не трие базата данни в ProgramData\RdpMonitor - изтрий я ръчно, ако искаш чисто премахване.
+    Removes RDP Monitor Server (stops and deletes the Windows service and the firewall rule).
+    Does not delete the database in ProgramData\RdpMonitor - delete it manually for a full cleanup.
 #>
 
 param(
@@ -17,11 +17,11 @@ if ($existing) {
     sc.exe delete $serviceName | Out-Null
 }
 else {
-    Write-Host "Услугата $serviceName не е инсталирана."
+    Write-Host "Service $serviceName is not installed."
 }
 
 $ruleName = "RDP Monitor Server ($FirewallPort/TCP)"
 Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue
 
-Write-Host "RDP Monitor Server е премахнат." -ForegroundColor Green
-Write-Host "Базата данни (ProgramData\RdpMonitor\rdpmonitor.db) е запазена - изтрий я ръчно при нужда."
+Write-Host "RDP Monitor Server has been removed." -ForegroundColor Green
+Write-Host "The database (ProgramData\RdpMonitor\rdpmonitor.db) was kept - delete it manually if needed."

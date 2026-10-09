@@ -86,19 +86,19 @@ public class IndexModel : PageModel
                  && CryptographicOperations.FixedTimeEquals(given, expected);
         if (!ok)
         {
-            Error = "Грешна парола – събитията НЕ са изтрити.";
+            Error = "Wrong password - the events were NOT deleted.";
             return RedirectToPage();
         }
 
         var agent = await _db.Agents.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
         if (agent is null)
         {
-            Error = "Агентът не е намерен.";
+            Error = "Agent not found.";
             return RedirectToPage();
         }
 
         var deleted = await _db.Events.Where(e => e.AgentId == id).ExecuteDeleteAsync();
-        Message = $"Изтрити са {deleted} събития на {agent.Hostname}.";
+        Message = $"Deleted {deleted} event(s) of {agent.Hostname}.";
         return RedirectToPage();
     }
 }

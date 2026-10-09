@@ -54,15 +54,15 @@ public class EmailService
     private static string BuildBody(EventEntity evt, AgentEntity agent)
     {
         return $"""
-            Засечено е RDP събитие с приоритет {evt.Severity}.
+            An event with priority {evt.Severity} was detected.
 
-            Сървър (агент): {agent.Hostname} ({agent.IpAddress})
-            Тип събитие:     {evt.EventType}
-            Потребител:      {evt.Username ?? "-"}
-            Източник IP:     {evt.SourceIp ?? "-"}
-            Сесия:           {evt.SessionId?.ToString() ?? "-"}
-            Час:             {evt.Timestamp.ToLocalTime():yyyy-MM-dd HH:mm:ss}
-            Детайли:
+            Server (agent):  {agent.Hostname} ({agent.IpAddress})
+            Event type:      {evt.EventType}
+            User:            {evt.Username ?? "-"}
+            Source IP:       {evt.SourceIp ?? "-"}
+            Session:         {evt.SessionId?.ToString() ?? "-"}
+            Time:            {evt.Timestamp.ToLocalTime():yyyy-MM-dd HH:mm:ss}
+            Details:
             {evt.Details ?? "-"}
 
             --

@@ -1,21 +1,21 @@
 ﻿<#
-    Обновява вече инсталиран RDP Monitor Agent или Server с тази нова версия.
-    Запазва твоя appsettings.json (и добавя само новите настройки, които липсват в него).
-    Не пипа базата данни, сертификата и идентичността на агента (те са в C:\ProgramData\RdpMonitor).
+    Updates an already installed RDP Monitor Agent or Server with this newer version.
+    Keeps your appsettings.json (and only adds new settings that are missing from it).
+    Does not touch the database, the certificate or the agent identity (they live in C:\ProgramData\RdpMonitor).
 
-    Как се ползва:
-      1. Разархивирай новия zip в НОВА папка (напр. C:\update\RdpMonitor.Agent).
-      2. От тази нова папка, в PowerShell като администратор:
+    How to use:
+      1. Extract the new zip into a NEW folder (e.g. C:\update\RdpMonitor.Agent).
+      2. From that new folder, in PowerShell as administrator:
             .\update.ps1 -Target C:\RdpMonitor.Agent
-         (за сървъра: -Target C:\RdpMonitor.Server)
+         (for the server: -Target C:\RdpMonitor.Server)
 
-    Какво прави:  спира услугата -> прави копие на appsettings.json -> копира новите файлове ->
-                  добавя липсващите настройки -> сваля "изтеглено отвън" етикета -> стартира услугата.
+    What it does:  stops the service -> backs up appsettings.json -> copies the new files ->
+                   adds missing settings -> removes the "downloaded from the internet" mark -> starts the service.
 #>
 
 param(
     [Parameter(Mandatory = $true)][string]$Target,
-    [switch]$NoService   # само за тест: не пипа услугата
+    [switch]$NoService   # test only: does not touch the service
 )
 
 $ErrorActionPreference = "Stop"
@@ -23,24 +23,24 @@ $src = $PSScriptRoot
 
 if (-not $NoService) {
     $isAdmin = ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-    if (-not $isAdmin) { throw "Пусни скрипта в PowerShell като администратор." }
+    if (-not $isAdmin) { throw "Run this script in PowerShell as administrator." }
 }
 
 if (Test-Path (Join-Path $src "RdpMonitorAgent.exe"))      { $service = "RdpMonitorAgent";  $exe = "RdpMonitorAgent.exe" }
 elseif (Test-Path (Join-Path $src "RdpMonitorServer.exe")) { $service = "RdpMonitorServer"; $exe = "RdpMonitorServer.exe" }
-else { throw "В $src няма RdpMonitorAgent.exe или RdpMonitorServer.exe - пусни скрипта от разархивираната НОВА папка." }
+else { throw "There is no RdpMonitorAgent.exe or RdpMonitorServer.exe in $src - run the script from the extracted NEW folder." }
 
 if (-not (Test-Path (Join-Path $Target $exe))) {
-    throw "В $Target не намирам $exe. Провери -Target (папката на ВЕЧЕ инсталираната версия)."
+    throw "Cannot find $exe in $Target. Check -Target (the folder of the ALREADY installed version)."
 }
-if ((Resolve-Path $src).Path -eq (Resolve-Path $Target).Path) { throw "Новата и старата папка не могат да са една и съща." }
+if ((Resolve-Path $src).Path -eq (Resolve-Path $Target).Path) { throw "The new and the old folder cannot be the same." }
 
 function Merge-Missing($old, $new) {
-    # добавя в $old само ключовете, които ги няма; стойностите на потребителя не се пипат
+    # adds to $old only the keys it does not have; the user's values are never changed
     foreach ($prop in $new.PSObject.Properties) {
         if ($null -eq $old.PSObject.Properties[$prop.Name]) {
             $old | Add-Member -NotePropertyName $prop.Name -NotePropertyValue $prop.Value
-            Write-Host "  + нова настройка: $($prop.Name)"
+            Write-Host "  + new setting: $($prop.Name)"
         }
         elseif ($prop.Value -is [pscustomobject] -and $old.($prop.Name) -is [pscustomobject]) {
             Merge-Missing $old.($prop.Name) $prop.Value
@@ -54,19 +54,19 @@ $stamp     = Get-Date -Format yyyyMMdd-HHmmss
 
 if (-not $NoService) {
     $svc = Get-Service -Name $service -ErrorAction SilentlyContinue
-    if ($svc) { Write-Host "Спирам $service ..."; Stop-Service -Name $service -Force; $svc.WaitForStatus("Stopped", [TimeSpan]::FromSeconds(30)) }
-    else { Write-Warning "Услугата $service не е инсталирана. Файловете ще се обновят; после пусни install.ps1." }
+    if ($svc) { Write-Host "Stopping $service ..."; Stop-Service -Name $service -Force; $svc.WaitForStatus("Stopped", [TimeSpan]::FromSeconds(30)) }
+    else { Write-Warning "Service $service is not installed. The files will be updated; run install.ps1 afterwards." }
 }
 
 if (Test-Path $cfgTarget) {
     $backup = Join-Path $Target "appsettings.backup-$stamp.json"
     Copy-Item $cfgTarget $backup
-    Write-Host "Копие на настройките: $backup"
+    Write-Host "Settings backup: $backup"
 }
 
-Write-Host "Копирам новите файлове ..."
+Write-Host "Copying the new files ..."
 robocopy $src $Target /E /XF appsettings.json "appsettings.backup-*.json" /NFL /NDL /NJH /NJS /NP | Out-Null
-if ($LASTEXITCODE -ge 8) { throw "robocopy се провали (код $LASTEXITCODE)." }
+if ($LASTEXITCODE -ge 8) { throw "robocopy failed (code $LASTEXITCODE)." }
 
 if ((Test-Path $cfgTarget) -and (Test-Path $cfgNew)) {
     $old = Get-Content $cfgTarget -Raw | ConvertFrom-Json
@@ -76,7 +76,7 @@ if ((Test-Path $cfgTarget) -and (Test-Path $cfgNew)) {
 }
 elseif (-not (Test-Path $cfgTarget)) {
     Copy-Item $cfgNew $cfgTarget
-    Write-Warning "Нямаше appsettings.json - сложен е стандартният. Попълни го!"
+    Write-Warning "There was no appsettings.json - the default one was copied. Fill it in!"
 }
 
 Get-ChildItem $Target -Recurse -File | Unblock-File
@@ -88,5 +88,5 @@ if (-not $NoService) {
         Get-Service -Name $service | Format-Table Name, Status -AutoSize
     }
 }
-$global:LASTEXITCODE = 0   # robocopy връща 1-7 при успех; да не излиза скриптът с "грешка"
-Write-Host "Обновяването приключи." -ForegroundColor Green
+$global:LASTEXITCODE = 0   # robocopy returns 1-7 on success; do not make the script look like it failed
+Write-Host "Update finished." -ForegroundColor Green
