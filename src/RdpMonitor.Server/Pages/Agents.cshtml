@@ -1,0 +1,100 @@
+@page
+@model RdpMonitor.Server.Pages.AgentsModel
+@{
+    ViewData["Title"] = "Агенти";
+}
+
+<h2 class="mb-3">Агенти</h2>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-success py-2">@Model.Message</div>
+}
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <div class="alert alert-danger py-2">@Model.Error</div>
+}
+
+<p class="text-muted">Тук се управляват самите регистрирани агенти. Изтриването махва агента от системата заедно с <strong>всичките му събития</strong>. То <strong>не деинсталира</strong> агента на наблюдавания сървър – там първо пусни <code>uninstall.ps1</code>.</p>
+
+@if (Model.Agents.Count == 0)
+{
+    <div class="alert alert-info">Няма регистрирани агенти.</div>
+}
+else
+{
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Хост</th>
+                <th>IP адрес</th>
+                <th>Версия</th>
+                <th>Регистриран</th>
+                <th>Последно видян</th>
+                <th>Събития</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var a in Model.Agents)
+            {
+                <tr>
+                    <td>@a.Hostname</td>
+                    <td>@a.IpAddress</td>
+                    <td>@a.AgentVersion</td>
+                    <td>@a.RegisteredAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@a.LastSeenAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    <td>@Model.EventCounts.GetValueOrDefault(a.Id)</td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                data-bs-toggle="modal" data-bs-target="#deleteAgentModal"
+                                data-agent-id="@a.Id" data-agent-name="@a.Hostname">Изтрий агент</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<div class="modal fade" id="deleteAgentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" asp-page-handler="Delete" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Изтриване на агент</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+            </div>
+            <div class="modal-body">
+                <p>Ще бъдат изтрити агентът <strong id="deleteAgentName"></strong> и <strong>всичките му събития</strong>. Действието е необратимо.</p>
+                <input type="hidden" name="id" id="deleteAgentId" />
+                <label class="form-label">За потвърждение въведи точното име на сървъра</label>
+                <input type="text" name="confirmName" id="deleteAgentConfirm" class="form-control" autocomplete="off" required />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+                <button type="submit" id="deleteAgentBtn" class="btn btn-danger" disabled>Изтрий агента</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        (function () {
+            var modal = document.getElementById('deleteAgentModal');
+            var input = document.getElementById('deleteAgentConfirm');
+            var btn = document.getElementById('deleteAgentBtn');
+            var name = '';
+            modal.addEventListener('show.bs.modal', function (ev) {
+                var b = ev.relatedTarget;
+                name = b.getAttribute('data-agent-name');
+                document.getElementById('deleteAgentId').value = b.getAttribute('data-agent-id');
+                document.getElementById('deleteAgentName').textContent = name;
+                input.value = '';
+                btn.disabled = true;
+            });
+            input.addEventListener('input', function () {
+                btn.disabled = input.value.trim().toLowerCase() !== name.toLowerCase();
+            });
+        })();
+    </script>
+}

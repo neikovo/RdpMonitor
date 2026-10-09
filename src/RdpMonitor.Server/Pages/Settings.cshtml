@@ -1,0 +1,90 @@
+@page
+@model RdpMonitor.Server.Pages.SettingsModel
+@using RdpMonitor.Shared
+@{
+    ViewData["Title"] = "Настройки";
+}
+
+<h2 class="mb-3">Настройки</h2>
+
+<h4>Приоритет на аларми по тип събитие</h4>
+<p class="text-muted">Тук определяш какъв приоритет получава всеки тип събитие и дали да изпраща имейл. Събитие изпраща имейл само ако е включено тук <em>и</em> приоритетът му е равен или над глобалния праг (виж appsettings.json → Alerts:MinSeverityToEmail).</p>
+<table class="table table-sm align-middle">
+    <thead>
+        <tr>
+            <th>Тип събитие</th>
+            <th>Приоритет</th>
+            <th>Изпраща имейл</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var s in Model.TypeSettings)
+        {
+            <tr>
+                <form method="post" asp-page-handler="UpdateType">
+                    <td>
+                        @s.EventType
+                        <input type="hidden" name="eventType" value="@s.EventType" />
+                    </td>
+                    <td>
+                        <select name="severity" class="form-select form-select-sm">
+                            @foreach (var sev in Enum.GetValues<AlertSeverity>())
+                            {
+                                <option value="@sev" selected="@(sev == s.Severity)">@sev</option>
+                            }
+                        </select>
+                    </td>
+                    <td>
+                        <input type="checkbox" class="form-check-input" name="emailEnabled" value="true" checked="@s.EmailEnabled" />
+                    </td>
+                    <td>
+                        <button type="submit" class="btn btn-sm btn-outline-primary">Запази</button>
+                    </td>
+                </form>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<h4 class="mt-4">Получатели на имейл аларми</h4>
+<table class="table table-sm align-middle">
+    <thead>
+        <tr>
+            <th>Имейл</th>
+            <th>Име</th>
+            <th>Активен</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var r in Model.Recipients)
+        {
+            <tr>
+                <td>@r.Email</td>
+                <td>@r.DisplayName</td>
+                <td>@(r.Enabled ? "Да" : "Не")</td>
+                <td>
+                    <form method="post" asp-page-handler="ToggleRecipient" asp-route-id="@r.Id" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-warning">@(r.Enabled ? "Деактивирай" : "Активирай")</button>
+                    </form>
+                    <form method="post" asp-page-handler="DeleteRecipient" asp-route-id="@r.Id" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Изтрий</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<form method="post" asp-page-handler="AddRecipient" class="row g-2">
+    <div class="col-auto">
+        <input asp-for="NewRecipientEmail" class="form-control" placeholder="имейл@фирма.bg" />
+    </div>
+    <div class="col-auto">
+        <input asp-for="NewRecipientName" class="form-control" placeholder="Име (по избор)" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Добави получател</button>
+    </div>
+</form>

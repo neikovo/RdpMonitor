@@ -1,0 +1,113 @@
+@page
+@model RdpMonitor.Server.Pages.IndexModel
+@{
+    ViewData["Title"] = "Табло";
+}
+
+<h2 class="mb-3">Инсталирани агенти</h2>
+
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-success py-2">@Model.Message</div>
+}
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <div class="alert alert-danger py-2">@Model.Error</div>
+}
+
+@if (Model.Agents.Count == 0)
+{
+    <div class="alert alert-info">Все още няма регистрирани агенти. Инсталирай агент на сървър и той ще се появи тук автоматично.</div>
+}
+else
+{
+    <table class="table table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Статус</th>
+                <th>Хост</th>
+                <th>IP адрес</th>
+                <th>ОС</th>
+                <th>Последно видян</th>
+                <th>Събития (24ч)</th>
+                <th>Високоприоритетни (24ч)</th>
+                <th>Заглушен</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var a in Model.Agents)
+            {
+                <tr>
+                    <td>
+                        @if (a.IsOnline)
+                        {
+                            <span class="badge bg-success">Онлайн</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary">Офлайн</span>
+                        }
+                    </td>
+                    <td>@a.Hostname</td>
+                    <td>@a.IpAddress</td>
+                    <td class="text-muted small">@a.OsVersion</td>
+                    <td>@a.LastSeenAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                    <td>@a.EventCount24h</td>
+                    <td>
+                        @if (a.HighSeverityCount24h > 0)
+                        {
+                            <span class="badge bg-danger">@a.HighSeverityCount24h</span>
+                        }
+                        else
+                        {
+                            <span>0</span>
+                        }
+                    </td>
+                    <td>@(a.IsMuted ? "Да" : "Не")</td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary" href="/Events?agentId=@a.Id">Събития</a>
+                        <form method="post" asp-page-handler="ToggleMute" asp-route-id="@a.Id" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-warning">@(a.IsMuted ? "Размути" : "Заглуши")</button>
+                        </form>
+                        <button type="button" class="btn btn-sm btn-outline-danger"
+                                data-bs-toggle="modal" data-bs-target="#clearEventsModal"
+                                data-agent-id="@a.Id" data-agent-name="@a.Hostname">Изтрий събития</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<div class="modal fade" id="clearEventsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <form method="post" asp-page-handler="ClearEvents" class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Изтриване на събития</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Затвори"></button>
+            </div>
+            <div class="modal-body">
+                <p>Ще бъдат изтрити <strong>всички записани събития</strong> на агент <strong id="clearEventsName"></strong>. Агентът остава регистриран и продължава да работи. Действието е необратимо.</p>
+                <input type="hidden" name="id" id="clearEventsId" />
+                <label class="form-label">Въведи паролата си за достъп до таблото</label>
+                <input type="password" name="password" class="form-control" autocomplete="current-password" required />
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отказ</button>
+                <button type="submit" class="btn btn-danger">Изтрий събитията</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.getElementById('clearEventsModal').addEventListener('show.bs.modal', function (ev) {
+            var b = ev.relatedTarget;
+            document.getElementById('clearEventsId').value = b.getAttribute('data-agent-id');
+            document.getElementById('clearEventsName').textContent = b.getAttribute('data-agent-name');
+            this.querySelector('input[type=password]').value = '';
+        });
+    </script>
+}

@@ -1,0 +1,11 @@
+bin/
+obj/
+dist/
+*.user
+.vs/
+*.db
+*.db-shm
+*.db-wal
+*.pfx
+*.pwd
+appsettings.backup-*.json

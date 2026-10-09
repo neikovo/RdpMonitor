@@ -1,0 +1,74 @@
+@page
+@model RdpMonitor.Server.Pages.EventsModel
+@using RdpMonitor.Shared
+@{
+    ViewData["Title"] = "Събития";
+}
+
+<h2 class="mb-3">Събития</h2>
+
+<form method="get" class="row g-2 mb-3">
+    <div class="col-auto">
+        <select name="minSeverity" class="form-select" onchange="this.form.submit()">
+            <option value="">Всички приоритети</option>
+            @foreach (var sev in Enum.GetValues<AlertSeverity>())
+            {
+                <option value="@((int)sev)" selected="@(Model.MinSeverity == sev)">от @sev нагоре</option>
+            }
+        </select>
+    </div>
+    @if (Model.AgentId.HasValue)
+    {
+        <input type="hidden" name="agentId" value="@Model.AgentId" />
+        <div class="col-auto align-self-center">
+            <a href="/Events">(изчисти филтъра по агент)</a>
+        </div>
+    }
+</form>
+
+<table class="table table-sm table-striped">
+    <thead>
+        <tr>
+            <th>Час</th>
+            <th>Агент</th>
+            <th>Тип</th>
+            <th>Приоритет</th>
+            <th>Потребител</th>
+            <th>Източник IP</th>
+            <th>Детайли</th>
+            <th>Имейл изпратен</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var e in Model.Events)
+        {
+            <tr>
+                <td>@e.Timestamp.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
+                <td><a href="/Events?agentId=@e.AgentId">@(Model.AgentNames.GetValueOrDefault(e.AgentId, e.AgentId.ToString()))</a></td>
+                <td>@e.EventType</td>
+                <td>
+                    @{
+                        var badgeClass = e.Severity switch
+                        {
+                            AlertSeverity.Critical => "bg-danger",
+                            AlertSeverity.High => "bg-danger",
+                            AlertSeverity.Medium => "bg-warning text-dark",
+                            AlertSeverity.Low => "bg-secondary",
+                            _ => "bg-light text-dark"
+                        };
+                    }
+                    <span class="badge @badgeClass">@e.Severity</span>
+                </td>
+                <td>@e.Username</td>
+                <td>@e.SourceIp</td>
+                <td class="small text-break" style="max-width: 520px; white-space: pre-line;">@e.Details</td>
+                <td>@(e.EmailSent ? "Да" : "Не")</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (Model.Events.Count == 0)
+{
+    <div class="alert alert-info">Няма събития за показване.</div>
+}
