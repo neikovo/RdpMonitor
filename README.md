@@ -7,6 +7,8 @@ An agent/server system that monitors RDP sessions and suspicious processes on Wi
 
 **Installation and operation: see [INSTALL.md](INSTALL.md).**
 
+![RDP Monitor in four panels](docs/rdp-monitor-comic.png)
+
 ## Features
 
 - RDP logon, logoff, disconnect, reconnect and **failed logons** (with and without NLA), with source IP
