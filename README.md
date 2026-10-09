@@ -18,7 +18,9 @@ An agent/server system that monitors RDP sessions and suspicious processes on Wi
 
 ## Packages
 
-Build with `.\publish.ps1` (requires the .NET 8 SDK). It creates in `dist\`:
+**Ready-made packages:** download them from [Releases](https://github.com/neikovo/RdpMonitor/releases/latest) (unsigned - see the notes there; checksums are in `SHA256SUMS.txt`).
+
+Or build them yourself with `.\publish.ps1` (requires the .NET 8 SDK). It creates in `dist\`:
 
 - `RdpMonitor.Server.zip`
 - `RdpMonitor.Agent.zip`
