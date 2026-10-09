@@ -25,3 +25,11 @@ deploy/update.ps1       скрипт за обновяване (копира с�
 ```
 
 Агентът пази събитията локално (`C:\ProgramData\RdpMonitor\events.queue.jsonl`), докато сървърът ги приеме, така че при прекъсване нищо не се губи.
+
+## Отговорна употреба
+
+Инструментът следи входове, процеси (и по избор файлове) на сървъри. Използвай го само на системи, които управляваш или за които имаш изрично разрешение, и в съответствие с вътрешните правила и закона за защита на личните данни. Подаван е „както е“, без гаранции (виж [LICENSE](LICENSE)). Преди реална употреба смени паролите и токена по подразбиране (`CHANGE-ME…`) – виж [ИНСТАЛАЦИЯ.md](ИНСТАЛАЦИЯ.md).
+
+---
+
+**English (short):** RDP Monitor is a Windows Server agent + central ASP.NET Core server. The agent (Windows service) reports RDP logons/logoffs/failed logons and suspicious process starts (optional file audit) to the server, which stores them in SQLite, sends e-mail alerts by priority and shows a web dashboard. Build with the .NET 8 SDK (`.\publish.ps1` produces self-contained `dist\*.zip` packages). Documentation is in Bulgarian. Licensed under MIT.
