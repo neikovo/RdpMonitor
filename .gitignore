@@ -1,6 +1,6 @@
 bin/
 obj/
-dist/
+/dist/
 *.user
 .vs/
 *.db
