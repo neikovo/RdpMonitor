@@ -12,6 +12,7 @@ public class AppDbContext : DbContext
     public DbSet<EventEntity> Events => Set<EventEntity>();
     public DbSet<EventTypeSetting> EventTypeSettings => Set<EventTypeSetting>();
     public DbSet<Recipient> Recipients => Set<Recipient>();
+    public DbSet<IgnoredSource> IgnoredSources => Set<IgnoredSource>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

@@ -191,6 +191,30 @@ namespace RdpMonitor.Server.Migrations
                         });
                 });
 
+            modelBuilder.Entity("RdpMonitor.Server.Data.IgnoredSource", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Address")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.Property<bool>("Enabled")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<bool>("IgnoreFailedLogons")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("IgnoredSources");
+                });
+
             modelBuilder.Entity("RdpMonitor.Server.Data.Recipient", b =>
                 {
                     b.Property<int>("Id")

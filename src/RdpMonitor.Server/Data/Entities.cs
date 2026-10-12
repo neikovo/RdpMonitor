@@ -56,3 +56,22 @@ public class Recipient
     public string? DisplayName { get; set; }
     public bool Enabled { get; set; } = true;
 }
+
+/// <summary>
+/// A source address (or network) whose events are not recorded and never send e-mail,
+/// e.g. the admin jump server that connects to the monitored servers over RDP.
+/// </summary>
+public class IgnoredSource
+{
+    public int Id { get; set; }
+
+    /// <summary>A single IP address or a network in CIDR form, normalized (e.g. "10.0.0.5" or "10.0.0.0/24").</summary>
+    public string Address { get; set; } = "";
+
+    public string? Note { get; set; }
+
+    /// <summary>When false (the default), failed logons from this address are still reported.</summary>
+    public bool IgnoreFailedLogons { get; set; }
+
+    public bool Enabled { get; set; } = true;
+}

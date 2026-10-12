@@ -22,6 +22,7 @@
     <PublishSingleFile>false</PublishSingleFile>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <AssemblyName>RdpMonitorServer</AssemblyName>
+    <Version>1.1.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

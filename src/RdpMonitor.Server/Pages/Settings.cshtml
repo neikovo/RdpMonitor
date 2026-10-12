@@ -7,6 +7,15 @@
 
 <h2 class="mb-3">Settings</h2>
 
+@if (!string.IsNullOrEmpty(Model.Message))
+{
+    <div class="alert alert-success py-2">@Model.Message</div>
+}
+@if (!string.IsNullOrEmpty(Model.Error))
+{
+    <div class="alert alert-danger py-2">@Model.Error</div>
+}
+
 <h4>Alert priority by event type</h4>
 <p class="text-muted">Here you set the priority of each event type and whether it sends an e-mail. An event sends an e-mail only if it is enabled here <em>and</em> its priority is equal to or above the global threshold (see appsettings.json → Alerts:MinSeverityToEmail).</p>
 <table class="table table-sm align-middle">
@@ -86,5 +95,63 @@
     </div>
     <div class="col-auto">
         <button type="submit" class="btn btn-primary">Add recipient</button>
+    </div>
+</form>
+
+<h4 class="mt-5">Ignored source addresses</h4>
+<p class="text-muted">
+    Events that come <strong>from</strong> these addresses are not recorded and never send an e-mail. Typical use: the admin jump server
+    that connects over RDP to the monitored servers. Enter a single address (<code>10.0.0.5</code>) or a whole network (<code>10.0.0.0/24</code>).
+    Failed logons from an address are still reported unless you tick the box, so a trusted machine that starts guessing passwords does not stay hidden.
+    The filter applies to new events only; process events have no source address and are never affected.
+</p>
+<table class="table table-sm align-middle">
+    <thead>
+        <tr>
+            <th>Address / network</th>
+            <th>Note</th>
+            <th>Also ignore failed logons</th>
+            <th>Active</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var s in Model.IgnoredSources)
+        {
+            <tr>
+                <td><code>@s.Address</code></td>
+                <td>@s.Note</td>
+                <td>@(s.IgnoreFailedLogons ? "Yes" : "No")</td>
+                <td>@(s.Enabled ? "Yes" : "No")</td>
+                <td>
+                    <form method="post" asp-page-handler="ToggleIgnored" asp-route-id="@s.Id" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-warning">@(s.Enabled ? "Deactivate" : "Activate")</button>
+                    </form>
+                    <form method="post" asp-page-handler="DeleteIgnored" asp-route-id="@s.Id" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        @if (Model.IgnoredSources.Count == 0)
+        {
+            <tr><td colspan="5" class="text-muted">Nothing is ignored.</td></tr>
+        }
+    </tbody>
+</table>
+
+<form method="post" asp-page-handler="AddIgnored" class="row g-2 align-items-center">
+    <div class="col-auto">
+        <input asp-for="NewIgnoreAddress" class="form-control" placeholder="10.0.0.5 or 10.0.0.0/24" required />
+    </div>
+    <div class="col-auto">
+        <input asp-for="NewIgnoreNote" class="form-control" placeholder="Note (optional), e.g. admin jump server" />
+    </div>
+    <div class="col-auto form-check ms-2">
+        <input asp-for="NewIgnoreFailedLogons" class="form-check-input" type="checkbox" />
+        <label asp-for="NewIgnoreFailedLogons" class="form-check-label">Also ignore failed logons</label>
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Add to the ignore list</button>
     </div>
 </form>

@@ -14,6 +14,8 @@ An agent/server system that monitors RDP sessions and suspicious processes on Wi
 - RDP logon, logoff, disconnect, reconnect and **failed logons** (with and without NLA), with source IP
 - **Suspicious process** audit: configurable list of programs and command-line regex patterns; each record shows the program, command line, why it was flagged, the parent process, PID and privileges
 - Priority per event type, global e-mail threshold, per-agent mute, multiple recipients
+- **Ignored source addresses** (an IP or a CIDR network, e.g. your admin jump server): events from them are not recorded; failed logons are still reported unless you say otherwise
+- **Export** the events (with the current filters) to CSV
 - Web dashboard: agents online/offline, events with filters, settings; safe deletion (events need the admin password, an agent needs its name typed)
 - The agent keeps events in a local queue until the server accepts them, so nothing is lost during an outage
 - Agent connects outbound only (HTTPS, API key per agent); no inbound ports on monitored servers

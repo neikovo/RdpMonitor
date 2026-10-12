@@ -82,9 +82,25 @@ public static class AgentEndpoints
             var agent = await AuthenticateAgentAsync(http, db, agentId, ct);
             if (agent is null) return Results.Unauthorized();
 
+            // Source addresses the admin chose to ignore (e.g. the jump server that connects over RDP).
+            var ignoreRules = new List<(IpRule Rule, bool IgnoreFailed)>();
+            foreach (var s in await db.IgnoredSources.AsNoTracking().Where(s => s.Enabled).ToListAsync(ct))
+            {
+                var rule = IpFilter.ParseRule(s.Address, out _);
+                if (rule is not null) ignoreRules.Add((rule, s.IgnoreFailedLogons));
+            }
+            var ignored = 0;
+
             foreach (var dto in batch.Events)
             {
                 if (dto.AgentId != agentId) continue; // a batch must belong to a single authenticated agent
+
+                if (ignoreRules.Count > 0 && !string.IsNullOrEmpty(dto.SourceIp)
+                    && ignoreRules.Any(r => (dto.EventType != RdpEventType.RdpLogonFailed || r.IgnoreFailed) && IpFilter.Matches(r.Rule, dto.SourceIp)))
+                {
+                    ignored++;
+                    continue;
+                }
 
                 var entity = new EventEntity
                 {
@@ -106,7 +122,8 @@ public static class AgentEndpoints
             agent.LastSeenAt = DateTimeOffset.UtcNow;
             await db.SaveChangesAsync(ct);
 
-            logger.LogInformation("Stored {Count} event(s) from agent {Hostname}", batch.Events.Count, agent.Hostname);
+            logger.LogInformation("Stored {Count} event(s) from agent {Hostname} ({Ignored} ignored by source-address filter)",
+                batch.Events.Count - ignored, agent.Hostname, ignored);
             return Results.Ok();
         });
     }

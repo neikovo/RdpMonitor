@@ -86,9 +86,22 @@ All commands are for **PowerShell run as administrator**.
 | **Suspicious processes** | Security 4688 - a list of programs and command-line patterns | no (enable manually) |
 | Files (who, when) | Security 4663 | **not active** - see section 7 |
 
-**Dashboard:** *Dashboard* (agents, online/offline, mute, "Delete events" with password), *Agents* (registered agents, "Delete agent" by typing its name), *Events* (with filters and details), *Settings* (priority and e-mail per type, recipients).
+**Dashboard:** *Dashboard* (agents, online/offline, mute, "Delete events" with password), *Agents* (registered agents, "Delete agent" by typing its name), *Events* (with filters, details and **Export CSV**), *Settings* (priority and e-mail per type, recipients, ignored source addresses).
 
 An e-mail is sent only if: the agent is not muted **and** the event type has "Sends e-mail" ticked **and** its priority is >= `MinSeverityToEmail`. To receive e-mails you must add at least one **active recipient** in *Settings*.
+
+### Ignoring source addresses
+
+If a machine you trust connects over RDP to the monitored servers all the time (for example your admin jump server), you can stop its events from being recorded: *Settings* -> **Ignored source addresses**. Enter a single address (`10.0.0.5`) or a whole network (`10.0.0.0/24`), with an optional note.
+
+- The rule is **global** (all agents) and applies to **new** events only; nothing already recorded is removed. Ignored events are not stored and never send an e-mail.
+- **Failed logons from that address are still reported**, unless you tick *Also ignore failed logons* for it. This is deliberate: a trusted machine that gets compromised and starts guessing passwords would otherwise stay invisible.
+- Process events have no source address, so they are never affected.
+- A rule can be deactivated and activated again without deleting it.
+
+### Exporting events
+
+*Events* -> **Export CSV** downloads the events that match the filters currently shown (agent, minimum priority), newest first, up to 200,000 rows. The file is UTF-8 and opens correctly in Excel; it has local and UTC time, agent, type, priority, user, source IP, session, details and whether an e-mail was sent. Text that a spreadsheet could run as a formula (starting with `=`, `+`, `-` or `@`) is prefixed with an apostrophe.
 
 ---
 
