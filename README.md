@@ -44,6 +44,10 @@ deploy/update.ps1       update script (copied into every package)
 
 This tool watches logons, processes (and optionally files) on servers. Use it only on systems you manage or have explicit permission to monitor, and in line with your internal policies and data-protection law. It is provided "as is", without warranty (see [LICENSE](LICENSE)). Before real use, change the default passwords and token (`CHANGE-ME...`) - see [INSTALL.md](INSTALL.md).
 
+## Security
+
+Found a vulnerability? Please report it privately - see [SECURITY.md](SECURITY.md).
+
 ## License
 
 MIT - see [LICENSE](LICENSE).
