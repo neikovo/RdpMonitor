@@ -16,7 +16,11 @@
         <div class="card shadow-sm" style="width: 360px;">
             <div class="card-body">
                 <h4 class="card-title mb-3">RDP Monitor - Sign in</h4>
-                @if (!Model.ModelState.IsValid)
+                @if (Model.DefaultCredentials)
+                {
+                    <div class="alert alert-warning py-2">Sign-in is disabled: the administrator has not yet replaced the default password in <code>appsettings.json</code>.</div>
+                }
+                else if (!Model.ModelState.IsValid)
                 {
                     <div class="alert alert-danger py-2">Wrong username or password.</div>
                 }

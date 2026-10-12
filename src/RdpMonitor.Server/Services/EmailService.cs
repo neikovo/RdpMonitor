@@ -35,7 +35,8 @@ public class EmailService
             using var message = new MailMessage
             {
                 From = new MailAddress(_smtp.FromAddress, _smtp.FromName),
-                Subject = $"[RDP Monitor] {evt.Severity} - {evt.EventType} on {agent.Hostname}",
+                // the host name comes from the monitored machine: strip control characters so it cannot inject mail headers
+                Subject = $"[RDP Monitor] {evt.Severity} - {evt.EventType} on {InputSanitizer.Line(agent.Hostname, 100)}",
                 Body = BuildBody(evt, agent),
                 IsBodyHtml = false,
             };

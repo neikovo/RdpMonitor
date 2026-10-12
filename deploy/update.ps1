@@ -15,7 +15,8 @@
 
 param(
     [Parameter(Mandatory = $true)][string]$Target,
-    [switch]$NoService   # test only: does not touch the service
+    [switch]$NoService,    # test only: does not touch the service
+    [switch]$NoFolderLock  # do not restrict the program folder to SYSTEM and Administrators
 )
 
 $ErrorActionPreference = "Stop"
@@ -80,6 +81,9 @@ elseif (-not (Test-Path $cfgTarget)) {
 }
 
 Get-ChildItem $Target -Recurse -File | Unblock-File
+
+# keep the folder locked to SYSTEM and Administrators (see install.ps1 for why); skip with -NoFolderLock
+if (-not $NoService -and -not $NoFolderLock) { icacls $Target /inheritance:r /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" | Out-Null }
 
 if (-not $NoService) {
     if (Get-Service -Name $service -ErrorAction SilentlyContinue) {

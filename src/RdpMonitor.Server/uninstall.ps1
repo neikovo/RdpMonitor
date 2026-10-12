@@ -1,7 +1,7 @@
 ﻿#Requires -RunAsAdministrator
 <#
     Removes RDP Monitor Server (stops and deletes the Windows service and the firewall rule).
-    Does not delete the database in ProgramData\RdpMonitor - delete it manually for a full cleanup.
+    Does not delete the database in ProgramData\RdpMonitor\server-data - delete it manually for a full cleanup.
 #>
 
 param(
@@ -24,4 +24,4 @@ $ruleName = "RDP Monitor Server ($FirewallPort/TCP)"
 Get-NetFirewallRule -DisplayName $ruleName -ErrorAction SilentlyContinue | Remove-NetFirewallRule -ErrorAction SilentlyContinue
 
 Write-Host "RDP Monitor Server has been removed." -ForegroundColor Green
-Write-Host "The database (ProgramData\RdpMonitor\rdpmonitor.db) was kept - delete it manually if needed."
+Write-Host "The database (ProgramData\RdpMonitor\server-data\rdpmonitor.db) was kept - delete it manually if needed."

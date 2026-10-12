@@ -1,10 +1,9 @@
-using System.Security.Cryptography;
-using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using RdpMonitor.Server.Data;
+using RdpMonitor.Server.Services;
 
 namespace RdpMonitor.Server.Pages;
 
@@ -25,11 +24,13 @@ public class IndexModel : PageModel
 {
     private readonly AppDbContext _db;
     private readonly AdminOptions _admin;
+    private readonly ILogger<IndexModel> _logger;
 
-    public IndexModel(AppDbContext db, IOptions<AdminOptions> admin)
+    public IndexModel(AppDbContext db, IOptions<AdminOptions> admin, ILogger<IndexModel> logger)
     {
         _db = db;
         _admin = admin.Value;
+        _logger = logger;
     }
 
     public List<AgentRow> Agents { get; set; } = new();
@@ -80,12 +81,10 @@ public class IndexModel : PageModel
     /// <summary>Deletes only the stored events of one agent (the agent itself stays registered). Requires the admin password.</summary>
     public async Task<IActionResult> OnPostClearEventsAsync(Guid id, string? password)
     {
-        var given = Encoding.UTF8.GetBytes(password ?? "");
-        var expected = Encoding.UTF8.GetBytes(_admin.Password ?? "");
-        var ok = !string.IsNullOrEmpty(_admin.Password) && given.Length == expected.Length
-                 && CryptographicOperations.FixedTimeEquals(given, expected);
+        var ok = !SecretPolicy.IsPlaceholder(_admin.Password) && SecretCompare.Matches(password, _admin.Password);
         if (!ok)
         {
+            _logger.LogWarning("Delete-events confirmation FAILED from {Ip}", HttpContext.Connection.RemoteIpAddress);
             Error = "Wrong password - the events were NOT deleted.";
             return RedirectToPage();
         }

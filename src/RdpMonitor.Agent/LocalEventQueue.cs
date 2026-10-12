@@ -18,6 +18,7 @@ public class LocalEventQueue
         var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData), "RdpMonitor");
         Directory.CreateDirectory(dir);
         _path = Path.Combine(dir, "events.queue.jsonl");
+        FileProtection.Restrict(_path); // also lock a queue file written by an older version
     }
 
     public void Enqueue(RdpEventDto evt)
@@ -25,7 +26,9 @@ public class LocalEventQueue
         lock (_lock)
         {
             var line = JsonSerializer.Serialize(evt);
+            var isNew = !File.Exists(_path);
             File.AppendAllText(_path, line + Environment.NewLine);
+            if (isNew) FileProtection.Restrict(_path); // queued events must not be readable or editable by ordinary local users
         }
     }
 

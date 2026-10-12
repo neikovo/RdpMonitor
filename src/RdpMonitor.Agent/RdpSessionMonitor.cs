@@ -129,7 +129,10 @@ public class RdpSessionMonitor : IDisposable
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         try
         {
-            var xml = XDocument.Parse(record.ToXml());
+            // DTDs are never part of a Windows event: refuse them outright (no entity expansion, no external resolver)
+            using var reader = System.Xml.XmlReader.Create(new StringReader(record.ToXml()),
+                new System.Xml.XmlReaderSettings { DtdProcessing = System.Xml.DtdProcessing.Prohibit, XmlResolver = null });
+            var xml = XDocument.Load(reader);
             XNamespace ns = "http://schemas.microsoft.com/win/2004/08/events/event";
             foreach (var dataNode in xml.Descendants(ns + "Data"))
             {

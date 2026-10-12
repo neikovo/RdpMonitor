@@ -8,6 +8,8 @@ namespace RdpMonitor.Server.Endpoints;
 
 public static class AgentEndpoints
 {
+    private const int MaxEventsPerBatch = 500;
+
     public static void MapAgentEndpoints(this WebApplication app)
     {
         var api = app.MapGroup("/api");
@@ -20,30 +22,54 @@ public static class AgentEndpoints
             ILogger<Program> logger,
             CancellationToken ct) =>
         {
-            var providedToken = http.Headers["X-Enrollment-Token"].ToString();
             var expectedToken = enrollmentOptions.Value.EnrollmentToken;
-            if (string.IsNullOrEmpty(expectedToken) || providedToken != expectedToken)
+
+            // The shipped placeholder is public on GitHub: while it is unchanged nobody may enroll agents.
+            if (SecretPolicy.IsPlaceholder(expectedToken))
+            {
+                logger.LogError("Agent registration refused: Agent:EnrollmentToken in appsettings.json still has the default value. Set your own and restart the service.");
+                return Results.Problem("Enrollment is disabled until the administrator sets Agent:EnrollmentToken.", statusCode: StatusCodes.Status503ServiceUnavailable);
+            }
+
+            var providedToken = http.Headers["X-Enrollment-Token"].ToString();
+            if (!SecretCompare.Matches(providedToken, expectedToken))
             {
                 logger.LogWarning("Rejected agent registration from {Ip}: invalid enrollment token", http.HttpContext.Connection.RemoteIpAddress);
                 return Results.Unauthorized();
             }
 
-            if (request.AgentId == Guid.Empty || string.IsNullOrWhiteSpace(request.Hostname))
+            var hostname = InputSanitizer.Line(request.Hostname, 255);
+            if (request.AgentId == Guid.Empty || string.IsNullOrWhiteSpace(hostname))
                 return Results.BadRequest("AgentId and Hostname are required.");
 
-            var apiKey = ApiKeyHelper.GenerateKey();
             var agent = await db.Agents.FindAsync(new object[] { request.AgentId }, ct);
 
+            // An existing agent must NOT be re-enrolled with just the shared token: anyone who knows the token
+            // (it is stored on every monitored server) could otherwise take over another agent's identity and
+            // lock the real one out. Re-enrolling is allowed only with the agent's current key, or after the
+            // admin deleted the agent in the dashboard.
+            if (agent is not null)
+            {
+                var currentKey = http.Headers["X-Api-Key"].ToString();
+                if (string.IsNullOrEmpty(currentKey) || !SecretCompare.Matches(ApiKeyHelper.Hash(currentKey), agent.ApiKeyHash))
+                {
+                    logger.LogWarning("Rejected re-registration of existing agent {AgentId} from {Ip}: delete the agent in the dashboard to enroll it again",
+                        request.AgentId, http.HttpContext.Connection.RemoteIpAddress);
+                    return Results.Conflict("This agent is already registered. Delete it in the dashboard (Agents) to enroll it again.");
+                }
+            }
+
+            var apiKey = ApiKeyHelper.GenerateKey();
             if (agent is null)
             {
                 agent = new AgentEntity { Id = request.AgentId, RegisteredAt = DateTimeOffset.UtcNow };
                 db.Agents.Add(agent);
             }
 
-            agent.Hostname = request.Hostname;
-            agent.IpAddress = request.IpAddress;
-            agent.OsVersion = request.OsVersion;
-            agent.AgentVersion = request.AgentVersion;
+            agent.Hostname = hostname!;
+            agent.IpAddress = InputSanitizer.Line(request.IpAddress, 64);
+            agent.OsVersion = InputSanitizer.Line(request.OsVersion, 200);
+            agent.AgentVersion = InputSanitizer.Line(request.AgentVersion, 32);
             agent.ApiKeyHash = ApiKeyHelper.Hash(apiKey);
             agent.LastSeenAt = DateTimeOffset.UtcNow;
 
@@ -77,6 +103,8 @@ public static class AgentEndpoints
             CancellationToken ct) =>
         {
             if (batch.Events.Count == 0) return Results.Ok();
+            if (batch.Events.Count > MaxEventsPerBatch)
+                return Results.BadRequest($"At most {MaxEventsPerBatch} events per request.");
 
             var agentId = batch.Events[0].AgentId;
             var agent = await AuthenticateAgentAsync(http, db, agentId, ct);
@@ -102,14 +130,16 @@ public static class AgentEndpoints
                     continue;
                 }
 
+                if (!Enum.IsDefined(dto.EventType)) continue; // unknown event type (newer/hostile agent): never invent an alert for it
+
                 var entity = new EventEntity
                 {
                     AgentId = agent.Id,
                     EventType = dto.EventType,
-                    Username = dto.Username,
-                    SourceIp = dto.SourceIp,
+                    Username = InputSanitizer.Line(dto.Username, 256),
+                    SourceIp = InputSanitizer.Line(dto.SourceIp, 64),
                     SessionId = dto.SessionId,
-                    Details = dto.Details,
+                    Details = InputSanitizer.Text(dto.Details, 4000),
                     Timestamp = dto.Timestamp,
                     ReceivedAt = DateTimeOffset.UtcNow,
                 };

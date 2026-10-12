@@ -35,7 +35,10 @@ public class AgentIdentityStore
                     var json = File.ReadAllText(_path);
                     var existing = JsonSerializer.Deserialize<AgentIdentity>(json);
                     if (existing is not null && existing.AgentId != Guid.Empty)
+                    {
+                        RdpMonitor.Shared.FileProtection.Restrict(_path); // also lock a file written by an older version
                         return existing;
+                    }
                 }
                 catch
                 {
@@ -55,6 +58,8 @@ public class AgentIdentityStore
         {
             var json = JsonSerializer.Serialize(identity, new JsonSerializerOptions { WriteIndented = true });
             File.WriteAllText(_path, json);
+            // holds this agent's API key: readable by SYSTEM/Administrators only, not by every local user
+            RdpMonitor.Shared.FileProtection.Restrict(_path);
         }
     }
 }

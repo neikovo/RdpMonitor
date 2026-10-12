@@ -9,7 +9,8 @@
 #>
 
 param(
-    [int]$FirewallPort = 5443
+    [int]$FirewallPort = 5443,
+    [switch]$NoFolderLock   # do not restrict the program folder to SYSTEM and Administrators
 )
 
 $ErrorActionPreference = "Stop"
@@ -20,6 +21,13 @@ if (-not (Test-Path $exePath)) {
     throw "Cannot find $exePath - run install.ps1 from the folder the server was extracted to."
 }
 
+# Lock the program folder. A folder created directly under C:\ is writable by every signed-in user by default;
+# that would let a normal user replace the program (it runs as SYSTEM) or read appsettings.json (passwords/tokens).
+# Only SYSTEM and Administrators get access.
+if (-not $NoFolderLock) {
+    icacls $PSScriptRoot /inheritance:r /grant:r "*S-1-5-18:(OI)(CI)F" "*S-1-5-32-544:(OI)(CI)F" | Out-Null
+    Write-Host "Folder permissions locked to SYSTEM and Administrators: $PSScriptRoot"
+}
 $existing = Get-Service -Name $serviceName -ErrorAction SilentlyContinue
 if ($existing) {
     Write-Host "Service $serviceName already exists - stopping and removing it before reinstalling..."

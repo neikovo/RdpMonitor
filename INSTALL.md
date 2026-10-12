@@ -31,8 +31,8 @@ All commands are for **PowerShell run as administrator**.
 
    | Setting | Meaning |
    |---|---|
-   | `Admin:Username` / `Admin:Password` | dashboard login - **change the password**. The same password protects "Delete events". |
-   | `Agent:EnrollmentToken` | secret code the agents use to register - **make up your own** |
+   | `Admin:Username` / `Admin:Password` | dashboard login. **Required:** while the password still starts with `CHANGE-ME` nobody can sign in. Use at least 12 characters. The same password protects "Delete events". |
+   | `Agent:EnrollmentToken` | secret code the agents use to register. **Required:** while it starts with `CHANGE-ME` no new agent can register. Use at least 16 random characters. |
    | `Alerts:MinSeverityToEmail` | global threshold: events below it never send an e-mail (`Info`, `Low`, `Medium`, `High`, `Critical`). Recommended: `Medium`. |
    | `Smtp:Host`, `Port`, `UseSsl`, `Username`, `Password`, `FromAddress` | mail server. For an internal relay without authentication: `Port 25`, `UseSsl false`, empty `Username/Password`. **`Host` and `FromAddress` are required**, otherwise nothing is sent. |
    | `Kestrel:Endpoints:Https:Url` | address and port, default `https://0.0.0.0:5443` |
@@ -43,7 +43,11 @@ All commands are for **PowerShell run as administrator**.
    .\install.ps1
    Get-Service RdpMonitorServer        # should be: Running
    ```
-4. Open `https://SERVER-NAME:5443/` and sign in. The browser will warn about the certificate - on first start the server creates a self-signed one (normal for an internal network).
+   The installer also **locks the program folder** to SYSTEM and Administrators (a folder created directly under `C:\` is writable by every user by default, which would let a normal user replace a program that runs as SYSTEM, or read the passwords in `appsettings.json`).
+4. Open `https://SERVER-NAME:5443/` and sign in. The browser will warn about the certificate - on first start the server creates a self-signed one (normal for an internal network). Its fingerprint, which the agents use to pin it, is written to `C:\ProgramData\RdpMonitor\server-cert-sha256.txt`:
+   ```powershell
+   Get-Content C:\ProgramData\RdpMonitor\server-cert-sha256.txt
+   ```
 
 ---
 
@@ -54,22 +58,24 @@ All commands are for **PowerShell run as administrator**.
    Expand-Archive C:\RdpMonitor.Agent.zip C:\ -Force
    Get-ChildItem C:\RdpMonitor.Agent -Recurse | Unblock-File
    ```
-2. Fill in the settings and install (change the first two lines; the token is the one from the server's `appsettings.json`):
+2. Fill in the settings and install. Change the first three lines: the token is the one from the server's `appsettings.json`, the fingerprint is the content of `server-cert-sha256.txt` on the server (see section 1, step 4):
    ```powershell
    $server = "https://NAME-OR-IP-OF-THE-CENTRAL-SERVER:5443"
    $token  = "THE-TOKEN-FROM-THE-SERVER"
+   $pin    = "THE-SHA256-FINGERPRINT-FROM-THE-SERVER"
 
    $p = "C:\RdpMonitor.Agent\appsettings.json"
    $c = Get-Content $p -Raw | ConvertFrom-Json
    $c.Agent.ServerUrl = $server
    $c.Agent.EnrollmentToken = $token
-   $c.Agent.AllowInsecureTls = $true       # needed while the server uses a self-signed certificate
+   $c.Agent.ServerCertificateSha256 = $pin  # the agent will accept ONLY this certificate (safe with a self-signed one)
    $c | ConvertTo-Json -Depth 8 | Set-Content $p -Encoding UTF8
 
    cd C:\RdpMonitor.Agent
    .\install.ps1
    Get-Service RdpMonitorAgent            # should be: Running
    ```
+   The agent trusts nothing but that certificate, so nobody on the network can pose as the server to read the agent's key or feed it false data. `Agent:AllowInsecureTls` (accept any certificate) still exists for quick lab tests, but it removes this protection: do not use it in production. With a real certificate from your own CA you need neither setting.
 3. After a few seconds the server appears in the dashboard (**Dashboard** and **Agents**) with status "Online".
 4. Agent on the central server itself: the same, with `$server = "https://localhost:5443"`.
 
@@ -170,7 +176,7 @@ Then: add the folders to `Audit:FileFolders` on the agent, run `.\setup-audit.ps
 cd C:\RdpMonitor.Agent;  .\uninstall.ps1      # agent
 cd C:\RdpMonitor.Server; .\uninstall.ps1      # server (also removes the port 5443 rule)
 ```
-The folders and the data in `C:\ProgramData\RdpMonitor` (database, certificate, agent identity) are not deleted - remove them manually for a full cleanup. Then, if you like, remove the agent from *Agents* in the dashboard too.
+The folders and the data in `C:\ProgramData\RdpMonitor` (database in its `server-data` subfolder, certificate, agent identity) are not deleted - remove them manually for a full cleanup. Then, if you like, remove the agent from *Agents* in the dashboard too.
 
 ---
 
@@ -179,7 +185,7 @@ The folders and the data in `C:\ProgramData\RdpMonitor` (database, certificate, 
 | Problem | What to check |
 |---|---|
 | The server/agent "hangs" when started by hand, or the service does not start | Did you run `Unblock-File` on the zip and the files? Antivirus/ASR/Application Control on the machine. The packages are not a single-file exe precisely because of this. |
-| The agent does not appear in the dashboard | `Test-NetConnection server -Port 5443`; does `EnrollmentToken` match; `AllowInsecureTls: true`; `ServerUrl` with `https://` and the port |
+| The agent does not appear in the dashboard | `Test-NetConnection server -Port 5443`; does `EnrollmentToken` match; is `ServerCertificateSha256` exactly the value in `server-cert-sha256.txt`; `ServerUrl` with `https://` and the port; has the server `Agent:EnrollmentToken` been changed from `CHANGE-ME...` (otherwise it answers 503); "already registered" (409) means the agent exists in the dashboard: delete it under *Agents*, then restart the agent |
 | No e-mails | Is there an active recipient; are `Smtp:Host` and `FromAddress` filled in; was the service restarted after the change; the `MinSeverityToEmail` threshold; the "Sends e-mail" tick for the type |
 | No failed RDP logons | `auditpol /get /subcategory:"Logon"` must be `Success and Failure` |
 | No `ProcessStarted` | Did you run `setup-audit.ps1`; `auditpol /get /subcategory:"Process Creation"` = `Success`; does event 4688 contain a command line |
@@ -187,9 +193,26 @@ The folders and the data in `C:\ProgramData\RdpMonitor` (database, certificate, 
 
 ---
 
-## 10. Security - before real use
+## 10. Security
 
-- Change `Admin:Password` and `Agent:EnrollmentToken` (do not leave `CHANGE-ME...`).
+**Before real use**
+
+- Set your own `Admin:Password` (12+ characters) and `Agent:EnrollmentToken` (16+ random characters). While they still start with `CHANGE-ME` the server refuses to sign anyone in or enroll any agent, because those defaults are public on GitHub.
+- Pin the server certificate on every agent (`Agent:ServerCertificateSha256`, section 2) instead of using `AllowInsecureTls`.
 - Keep the server on an internal network/behind a VPN; do not expose port 5443 to the internet.
-- The agent runs as `LocalSystem` (needed to read the Security log).
+- Use e-mail through a mail server you trust. Port 25 without TLS (`UseSsl: false`) sends alerts, which contain user names, IP addresses and command lines, in clear text over your network.
+
+**What the software does for you**
+
+- The program folders are locked to SYSTEM and Administrators by `install.ps1` and `update.ps1` (pass `-NoFolderLock` to skip this; then make sure ordinary users cannot write to the folder). The database lives in `C:\ProgramData\RdpMonitor\server-data`, and the TLS key, the agent's API key and the agent's event queue are separate files, all readable only by SYSTEM, Administrators and the service account.
+- Sign-in and enrollment secrets are compared in constant time; repeated wrong sign-ins, wrong enrollment tokens and wrong "Delete events" passwords are limited to 10 per minute per address (the server answers 429) and every failed sign-in is written to the Windows event log with the source address.
+- The dashboard cookie is `Secure`, `HttpOnly`, `SameSite=Strict` and expires after 8 hours; pages are sent with `X-Frame-Options: DENY`, a Content-Security-Policy, `nosniff` and `no-store`.
+- An agent that already exists cannot be re-enrolled with just the shared token (HTTP 409), so a stolen token cannot be used to take over another agent. The token can still create *new* fake agents, which is why it must stay secret; if it leaks, change it on the server and re-enroll.
+- Everything an agent sends is length-limited and stripped of control characters (so a hostile host name cannot inject e-mail headers or break the page); requests are limited to 2 MB and 500 events.
+- Passwords that appear in a process command line (`net user x Pass /add`, `-password ...`, `token=...`) are masked before the event is stored or e-mailed. This is best effort: it cannot recognise every way a program takes a secret.
+
+**Know the limits**
+
+- The agent runs as `LocalSystem` (needed to read the Security log) and the server too. Anyone who is already an administrator on those machines controls them; the tool protects against ordinary local users and the network, not against a local administrator.
+- The enrollment token is stored in each agent''s `appsettings.json` (administrators only). An administrator of one monitored server therefore knows it.
 - Monitoring processes and files affects the people who work on those servers - make sure it is allowed by your policy and the law.

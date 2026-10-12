@@ -19,6 +19,7 @@ An agent/server system that monitors RDP sessions and suspicious processes on Wi
 - Web dashboard: agents online/offline, events with filters, settings; safe deletion (events need the admin password, an agent needs its name typed)
 - The agent keeps events in a local queue until the server accepts them, so nothing is lost during an outage
 - Agent connects outbound only (HTTPS, API key per agent); no inbound ports on monitored servers
+- **Hardened by default:** the server refuses the shipped placeholder password/token, agents can pin the server certificate, guessing is rate-limited, secrets and the database are in files only administrators can read, and passwords on command lines are masked (see [INSTALL.md](INSTALL.md), section 10)
 
 ## Packages
 

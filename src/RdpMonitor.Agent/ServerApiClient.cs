@@ -36,6 +36,10 @@ public class ServerApiClient
             _http.DefaultRequestHeaders.Add("X-Enrollment-Token", _options.EnrollmentToken);
 
         var resp = await _http.PostAsJsonAsync("api/agents/register", request, ct);
+        if (resp.StatusCode == System.Net.HttpStatusCode.Conflict)
+            throw new InvalidOperationException("The server says this agent is already registered. Delete it under Agents in the dashboard, then restart this service.");
+        if (resp.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+            throw new InvalidOperationException("The server refuses enrollment until the administrator sets Agent:EnrollmentToken in the server's appsettings.json.");
         resp.EnsureSuccessStatusCode();
         return await resp.Content.ReadFromJsonAsync<AgentRegistrationResponse>(cancellationToken: ct);
     }

@@ -69,7 +69,7 @@ public static class AuditParser
         var lines = new List<string>
         {
             $"Program: {image}",
-            $"Command line: {Trunc(cmd, 600)}",
+            $"Command line: {Trunc(Redact(cmd), 600)}",
             $"Why flagged: {reason}",
             $"Started by: {parent} (PID {HexToDec(parentPid)})",
             $"Process PID: {HexToDec(pid)}",
@@ -84,6 +84,35 @@ public static class AuditParser
             Timestamp = ToUtc(time),
             Details = string.Join("\n", lines),
         };
+    }
+
+    private static readonly Regex[] SecretPatterns =
+    {
+        // password=..., token: ..., apikey=...
+        new(@"(\b(?:password|passwd|pwd|pass|secret|token|apikey|api[-_]key)\s*[=:]\s*)(""[^""]*""|'[^']*'|\S+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled, TimeSpan.FromMilliseconds(200)),
+        // -password xyz, --pass=xyz, /pwd:xyz
+        new(@"((?:--?|/)(?:password|passwd|pwd|pass)[=:\s]+)(""[^""]*""|\S+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled, TimeSpan.FromMilliseconds(200)),
+        // net user NAME PASSWORD /add   (the second word that is not a /switch)
+        new(@"(\bnet1?\s+user\s+(?:""[^""]*""|\S+)\s+)([^\s/]\S*)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled, TimeSpan.FromMilliseconds(200)),
+        // ConvertTo-SecureString "plain text"
+        new(@"(\bconvertto-securestring\s+(?:-string\s+)?)(""[^""]*""|'[^']*'|\S+)", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled, TimeSpan.FromMilliseconds(200)),
+    };
+
+    /// <summary>
+    /// Command lines often contain passwords (net user x Pass /add, -password ...). The command line is stored on the
+    /// server and sent by e-mail, so obvious secrets are masked. Detection still runs on the original text.
+    /// Best effort: it cannot recognise every way a program takes a secret.
+    /// </summary>
+    public static string? Redact(string? commandLine)
+    {
+        if (string.IsNullOrEmpty(commandLine)) return commandLine;
+        var text = commandLine;
+        foreach (var rx in SecretPatterns)
+        {
+            try { text = rx.Replace(text, "$1***"); }
+            catch (RegexMatchTimeoutException) { return "[command line hidden: could not be checked for secrets safely]"; }
+        }
+        return text;
     }
 
     private static string HexToDec(string? hex)
