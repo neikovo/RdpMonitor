@@ -56,6 +56,27 @@ namespace RdpMonitor.Server.Migrations
                     b.ToTable("Agents");
                 });
 
+            modelBuilder.Entity("RdpMonitor.Server.Data.AppSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("AppSettings");
+
+                    b.HasData(
+                        new
+                        {
+                            Key = "EventRetentionDays",
+                            Value = "7"
+                        });
+                });
+
             modelBuilder.Entity("RdpMonitor.Server.Data.EventEntity", b =>
                 {
                     b.Property<int>("Id")

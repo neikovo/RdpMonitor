@@ -82,6 +82,7 @@ if (File.Exists(legacyDb) && !File.Exists(dbPath))
 
 builder.Services.AddDbContext<AppDbContext>(options => options.UseSqlite($"Data Source={dbPath}"));
 
+builder.Services.AddHostedService<RetentionService>();
 builder.Services.AddScoped<AlertService>();
 builder.Services.AddSingleton<EmailService>();
 

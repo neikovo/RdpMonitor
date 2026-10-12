@@ -57,6 +57,13 @@ public class Recipient
     public bool Enabled { get; set; } = true;
 }
 
+/// <summary>A small key/value table for settings that the admin changes in the dashboard (e.g. how long events are kept).</summary>
+public class AppSetting
+{
+    public string Key { get; set; } = "";
+    public string Value { get; set; } = "";
+}
+
 /// <summary>
 /// A source address (or network) whose events are not recorded and never send e-mail,
 /// e.g. the admin jump server that connects to the monitored servers over RDP.

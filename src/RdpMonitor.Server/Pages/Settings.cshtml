@@ -155,3 +155,30 @@
         <button type="submit" class="btn btn-primary">Add to the ignore list</button>
     </div>
 </form>
+
+<h4 class="mt-5">Event retention</h4>
+<p class="text-muted">
+    Events older than the number of days below are deleted automatically (checked every hour). The age counts from the time the server
+    received the event. Enter <strong>0</strong> to keep events forever. Deleted events cannot be recovered; use <em>Export CSV</em> on the
+    Events page first if you need an archive.
+</p>
+<p>
+    Stored now: <strong>@Model.StoredEventCount</strong> event(s)@(Model.OldestEvent.HasValue ? ", the oldest from " + Model.OldestEvent.Value.ToLocalTime().ToString("yyyy-MM-dd HH:mm") : "").
+    Current setting: <strong>@(Model.RetentionDaysCurrent == 0 ? "keep forever" : Model.RetentionDaysCurrent + " day(s)")</strong>.
+</p>
+<form method="post" asp-page-handler="SaveRetention" class="row g-2 align-items-center"
+      onsubmit="var n = parseInt(this.querySelector('[name=RetentionDays]').value, 10); return !(n > 0) || confirm('Events older than ' + n + ' day(s) will be permanently deleted within the hour. Continue?');">
+    <div class="col-auto">
+        <label asp-for="RetentionDays" class="col-form-label">Keep events for (days):</label>
+    </div>
+    <div class="col-auto">
+        <input asp-for="RetentionDays" type="number" min="0" max="3650" class="form-control" style="width: 110px;" />
+    </div>
+    <div class="col-auto">
+        <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+</form>
+<form method="post" asp-page-handler="CleanNow" class="mt-2"
+      onsubmit="return confirm('Delete all events past the retention period now? This cannot be undone.');">
+    <button type="submit" class="btn btn-outline-danger btn-sm">Clean up now</button>
+</form>

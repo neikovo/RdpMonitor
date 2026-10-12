@@ -10,11 +10,20 @@ namespace RdpMonitor.Server.Pages;
 public class SettingsModel : PageModel
 {
     private readonly AppDbContext _db;
+    private readonly ILogger<SettingsModel> _logger;
 
-    public SettingsModel(AppDbContext db)
+    public SettingsModel(AppDbContext db, ILogger<SettingsModel> logger)
     {
         _db = db;
+        _logger = logger;
     }
+
+    public int RetentionDaysCurrent { get; set; }
+    public int StoredEventCount { get; set; }
+    public DateTimeOffset? OldestEvent { get; set; }
+
+    [BindProperty]
+    public int RetentionDays { get; set; }
 
     public List<EventTypeSetting> TypeSettings { get; set; } = new();
     public List<Recipient> Recipients { get; set; } = new();
@@ -43,6 +52,46 @@ public class SettingsModel : PageModel
         TypeSettings = await _db.EventTypeSettings.OrderBy(s => s.EventType).ToListAsync();
         Recipients = await _db.Recipients.OrderBy(r => r.Email).ToListAsync();
         IgnoredSources = await _db.IgnoredSources.OrderBy(s => s.Address).ToListAsync();
+
+        RetentionDaysCurrent = await RetentionService.GetDaysAsync(_db, HttpContext.RequestAborted);
+        RetentionDays = RetentionDaysCurrent;
+        StoredEventCount = await _db.Events.CountAsync();
+        OldestEvent = StoredEventCount == 0
+            ? null
+            : await _db.Events.AsNoTracking().OrderBy(e => e.ReceivedAt).Select(e => (DateTimeOffset?)e.ReceivedAt).FirstOrDefaultAsync();
+    }
+
+    public async Task<IActionResult> OnPostSaveRetentionAsync()
+    {
+        // Read the raw text: a value that is not a whole number must be refused, never silently turned into 0 ("keep forever").
+        var raw = Request.Form["RetentionDays"].ToString().Trim();
+        if (!int.TryParse(raw, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var days)
+            || days < 0 || days > RetentionService.MaxDays)
+        {
+            Error = $"Enter a whole number of days between 1 and {RetentionService.MaxDays}, or 0 to keep events forever. Nothing was changed.";
+            return RedirectToPage();
+        }
+
+        await RetentionService.SetDaysAsync(_db, days, HttpContext.RequestAborted);
+        _logger.LogWarning("Event retention was set to {Days} day(s) from the dashboard by {Ip}", days, HttpContext.Connection.RemoteIpAddress);
+        Message = days == 0
+            ? "Events are now kept forever."
+            : $"Events older than {days} day(s) are deleted automatically (the cleanup runs every hour, or press \"Clean up now\").";
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostCleanNowAsync()
+    {
+        var days = await RetentionService.GetDaysAsync(_db, HttpContext.RequestAborted);
+        if (days == 0)
+        {
+            Error = "Nothing was deleted: events are kept forever (retention is 0).";
+            return RedirectToPage();
+        }
+
+        var removed = await RetentionService.PurgeAsync(_db, _logger, HttpContext.RequestAborted);
+        Message = $"Deleted {removed} event(s) older than {days} day(s).";
+        return RedirectToPage();
     }
 
     public async Task<IActionResult> OnPostAddIgnoredAsync()

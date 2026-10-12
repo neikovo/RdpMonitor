@@ -13,6 +13,7 @@ public class AppDbContext : DbContext
     public DbSet<EventTypeSetting> EventTypeSettings => Set<EventTypeSetting>();
     public DbSet<Recipient> Recipients => Set<Recipient>();
     public DbSet<IgnoredSource> IgnoredSources => Set<IgnoredSource>();
+    public DbSet<AppSetting> AppSettings => Set<AppSetting>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -37,6 +38,10 @@ public class AppDbContext : DbContext
             e.Property(ev => ev.Timestamp).HasConversion(dateTimeOffsetConverter);
             e.Property(ev => ev.ReceivedAt).HasConversion(dateTimeOffsetConverter);
         });
+
+        modelBuilder.Entity<AppSetting>().HasKey(s => s.Key);
+        // Events are kept for 7 days by default; 0 in the dashboard means "keep forever".
+        modelBuilder.Entity<AppSetting>().HasData(new AppSetting { Key = "EventRetentionDays", Value = "7" });
 
         modelBuilder.Entity<EventTypeSetting>().HasKey(s => s.EventType);
 

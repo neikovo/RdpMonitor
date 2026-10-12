@@ -109,6 +109,15 @@ If a machine you trust connects over RDP to the monitored servers all the time (
 
 *Events* -> **Export CSV** downloads the events that match the filters currently shown (agent, minimum priority), newest first, up to 200,000 rows. The file is UTF-8 and opens correctly in Excel; it has local and UTC time, agent, type, priority, user, source IP, session, details and whether an e-mail was sent. Text that a spreadsheet could run as a formula (starting with `=`, `+`, `-` or `@`) is prefixed with an apostrophe.
 
+### Event retention (automatic cleanup)
+
+Events are **deleted automatically after 7 days** by default, so the database does not grow forever. Change it under *Settings* -> **Event retention**: enter the number of days (1-3650), or **0 to keep everything**. The change applies at once and needs no restart.
+
+- The cleanup runs once an hour (and when you press *Clean up now*). The age counts from the moment the **server received** the event, so events an agent delivers late after an outage are not deleted on arrival.
+- Deleted events cannot be recovered. If you need a longer archive, use **Export CSV** on the *Events* page regularly.
+- The page shows how many events are stored and the date of the oldest one. A value that is not a whole number is refused and nothing changes.
+- Upgrading: a database from an older version gets the 7-day default. If you want to keep your history, set **0** (or a longer period) *before* the first cleanup runs (it starts 30 seconds after the service starts), or export first.
+
 ---
 
 ## 4. E-mail - setup and test

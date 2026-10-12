@@ -16,6 +16,7 @@ An agent/server system that monitors RDP sessions and suspicious processes on Wi
 - Priority per event type, global e-mail threshold, per-agent mute, multiple recipients
 - **Ignored source addresses** (an IP or a CIDR network, e.g. your admin jump server): events from them are not recorded; failed logons are still reported unless you say otherwise
 - **Export** the events (with the current filters) to CSV
+- **Automatic cleanup** of old events (7 days by default; set in the dashboard, 0 = keep forever)
 - Web dashboard: agents online/offline, events with filters, settings; safe deletion (events need the admin password, an agent needs its name typed)
 - The agent keeps events in a local queue until the server accepts them, so nothing is lost during an outage
 - Agent connects outbound only (HTTPS, API key per agent); no inbound ports on monitored servers
